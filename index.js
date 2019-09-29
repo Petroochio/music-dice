@@ -1,87 +1,76 @@
-import pz from 'pizzicato';
 import Vec2 from './src/Utils/Vec2';
 
 import * as Mechamarkers from './src/Mechamarkers';
-import Wall from './src/Actors/Wall';
-import Ball from './src/Actors/Ball';
-import Player from './src/Actors/Player';
+import SampleSet from './src/Actors/SampleSet';
+import TrackSpawn from './src/Actors/TrackSpawn';
+import TrackMix from './src/Actors/TrackMix';
+import Trash from './src/Actors/Trash';
 
 let canvas, ctx, prevTime;
-let loadedSongs = 0;
-let triggeredPlay = false;
-const walls = [];
-walls.push(new Wall(new Vec2(0, 0), new Vec2(window.innerWidth, 0)));
-walls.push(new Wall(new Vec2(0, window.innerHeight), new Vec2(window.innerWidth, window.innerHeight)));
-walls.push(new Wall(new Vec2(0, 0), new Vec2(0, window.innerHeight)));
-walls.push(new Wall(new Vec2(window.innerWidth, 0), new Vec2(window.innerWidth, window.innerHeight)));
-const balls = [];
-balls.push(new Ball(new Vec2(200, 100), new Vec2(1, 1), 5));
-balls.push(new Ball(new Vec2(200, 100), new Vec2(1, -1), 5));
-balls.push(new Ball(new Vec2(200, 100), new Vec2(-1, -1), 5));
-balls.push(new Ball(new Vec2(200, 100), new Vec2(-1, 1), 5));
-balls.push(new Ball(new Vec2(200, 100), new Vec2(-1, 0), 5));
-balls.push(new Ball(new Vec2(200, 100), new Vec2(1, 0), 5));
-balls.push(new Ball(new Vec2(200, 100), new Vec2(0, -1), 5));
-balls.push(new Ball(new Vec2(200, 100), new Vec2(0, 1), 5));
 
-const players = [];
+// debug mouse stuff
+const mouseVec = new Vec2(0, 0);
+let isMouseDown = false;
+let mouseHeldTrack = null;
+let mouseHeldMix = null;
 
-const markerSoundMap = [];
-function checkCanPlay() {
-  if (!triggeredPlay && loadedSongs >= markerSoundMap.length) {
-    triggeredPlay = true;
-    markerSoundMap.forEach(([_, s]) => {
-      s.loop = true;
-      s.volume = 0;
-      s.attack = 2;
-      s.detatch = 1.5;
-      s.play();
-    });
-  }
+let stringSet, marimbaSet, drumSet;
+let stringTrackspawn, marimbaTrackspawn, drumTrackspawn;
+let tracks = [];
+let mixes = [];
+const trash = new Trash(new Vec2(10, 500));
+
+function addTrack(newTrack) {
+  tracks.push(newTrack);
 }
 
-let tempSongTimer = 4500;
+function preload() {
+  let notLoaded = true;
+  notLoaded = !(marimbaSet.areAllSamplesLoaded() && stringSet.areAllSamplesLoaded() && drumSet.areAllSamplesLoaded());
+  if (notLoaded) {
+    window.requestAnimationFrame(preload);
+  } else {
+    stringSet.startAllSamples();
+    marimbaSet.startAllSamples();
+    drumSet.startAllSamples();
+
+    stringTrackspawn = new TrackSpawn(new Vec2(100, 20), stringSet, 'STRING', addTrack);
+    marimbaTrackspawn = new TrackSpawn(new Vec2(300, 20), marimbaSet, 'MARIMBA', addTrack);
+    drumTrackspawn = new TrackSpawn(new Vec2(500, 20), drumSet, 'DRUM', addTrack);
+
+    window.requestAnimationFrame(update);
+  }
+}
 
 function update() {
   const currTime = Date.now();
   const dt = (currTime - prevTime) / 1000;
   prevTime = currTime;
 
-  // checkCanPlay();
-
   Mechamarkers.update(currTime);
 
-  players.forEach(p => p.update(dt));
+  // Update spawners and tracks
+  stringTrackspawn.update(dt);
+  marimbaTrackspawn.update(dt);
+  drumTrackspawn.update(dt);
+  tracks.forEach(t => t.update(dt));
+  mixes.forEach(m => m.update(dt));
+  trash.update(dt);
 
+  draw();
+  window.requestAnimationFrame(update);
+}
+
+function draw() {
   ctx.clearRect(-1, -1, canvas.width + 1, canvas.height + 1);
 
-  // The Game Stuff so far
-  balls.forEach(b => {
-    b.update(dt);
-
-    // Check walls for collision
-    // Make this predictive somehow, could add line by projecting next position of it crosses
-    // Then set position as collision point? or do half step
-    walls.forEach(w => {
-      if (w.checkCircleCollision(b.position, b.r)) {
-        b.setDirection(w.getReflection(b.position, b.forward));
-      }
-    });
-
-    players.forEach(p => {
-      if (p.checkCircleCollision(b.position, b.r)) {
-        b.setDirection(p.getReflection(b.position, b.forward));
-      }
-    });
-
-    b.draw(ctx);
-  });
-
-  // Draw de walls
-  walls.forEach(w => w.draw(ctx));
-  players.forEach(p => p.draw(ctx));
-
-  window.requestAnimationFrame(update);
+  // Draw all tracks and spawns
+  trash.draw(ctx);
+  stringTrackspawn.draw(ctx);
+  marimbaTrackspawn.draw(ctx);
+  drumTrackspawn.draw(ctx);
+  tracks.forEach(t => t.draw(ctx));
+  mixes.forEach(m => m.draw(ctx));
 }
 
 window.onload = () => {
@@ -91,36 +80,129 @@ window.onload = () => {
   Mechamarkers.init(canvas, ctx);
 
   // Init and push all sounds to sound array
-  // Percussion
-  markerSoundMap.push([52, new pz.Sound('./audio/Electronic_Beat_1.wav', () => loadedSongs += 1)]);
-  markerSoundMap.push([57, new pz.Sound('./audio/Electronic_Beat_2.wav', () => loadedSongs += 1)]);
-  markerSoundMap.push([58, new pz.Sound('./audio/Electronic_Beat_3.wav', () => loadedSongs += 1)]);
-  markerSoundMap.push([56, new pz.Sound('./audio/Conga_Beat_1.wav', () => loadedSongs += 1)]);
-  markerSoundMap.push([51, new pz.Sound('./audio/Conga_Beat_2.wav', () => loadedSongs += 1)]);
-  markerSoundMap.push([59, new pz.Sound('./audio/Kit_Beat_1.wav', () => loadedSongs += 1)]);
-
-  players.push(new Player([52, 56, 57, 58, 51, 59], [38, 39, 40, 46, 45, 10]));
-  players.push(new Player([52, 56, 57, 58, 51, 59], [48, 49, 44, 47, 53, 54]));
-  players.push(new Player([38, 39, 40, 46, 45, 10], [48, 49, 44, 47, 53, 54]));
+  drumSet = new SampleSet(
+    [
+      './audio/Electronic_Beat_1.wav',
+      './audio/Electronic_Beat_2.wav',
+      './audio/Electronic_Beat_3.wav',
+      './audio/Conga_Beat_1.wav',
+      './audio/Conga_Beat_2.wav',
+      './audio/Kit_Beat_1.wav',
+    ],
+    'DRUMS'
+  );
 
   // Marimba
-  markerSoundMap.push([38, new pz.Sound('./audio/Marimba_Tune_1.wav', () => loadedSongs += 1)]);
-  markerSoundMap.push([39, new pz.Sound('./audio/Marimba_Tune_2.wav', () => loadedSongs += 1)]);
-  markerSoundMap.push([40, new pz.Sound('./audio/Marimba_Tune_3.wav', () => loadedSongs += 1)]);
-  markerSoundMap.push([46, new pz.Sound('./audio/Marimba_Tune_4.wav', () => loadedSongs += 1)]);
-  markerSoundMap.push([45, new pz.Sound('./audio/Marimba_Tune_5.wav', () => loadedSongs += 1)]);
-  markerSoundMap.push([10, new pz.Sound('./audio/Marimba_Tune_6.wav', () => loadedSongs += 1)]);
+  marimbaSet = new SampleSet(
+    [
+      './audio/Marimba_Tune_1.wav',
+      './audio/Marimba_Tune_2.wav',
+      './audio/Marimba_Tune_3.wav',
+      './audio/Marimba_Tune_4.wav',
+      './audio/Marimba_Tune_5.wav',
+      './audio/Marimba_Tune_6.wav',
+    ],
+    'MARIMBA'
+  );
 
   // Strings
-  markerSoundMap.push([48, new pz.Sound('./audio/Strings_Tune_1.wav', () => loadedSongs += 1)]);
-  markerSoundMap.push([49, new pz.Sound('./audio/Strings_Tune_2.wav', () => loadedSongs += 1)]);
-  markerSoundMap.push([44, new pz.Sound('./audio/Strings_Tune_3.wav', () => loadedSongs += 1)]);
-  markerSoundMap.push([47, new pz.Sound('./audio/Strings_Tune_4.wav', () => loadedSongs += 1)]);
-  markerSoundMap.push([53, new pz.Sound('./audio/Strings_Tune_5.wav', () => loadedSongs += 1)]);
-  markerSoundMap.push([54, new pz.Sound('./audio/Strings_Tune_6.wav', () => loadedSongs += 1)]);
+  stringSet = new SampleSet(
+    [
+      './audio/Strings_Tune_1.wav',
+      './audio/Strings_Tune_2.wav',
+      './audio/Strings_Tune_3.wav',
+      './audio/Strings_Tune_4.wav',
+      './audio/Strings_Tune_5.wav',
+      './audio/Strings_Tune_6.wav',
+    ],
+    'STRINGS'
+  );
 
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
 
-  window.requestAnimationFrame(update);
+  // Mouse debug controls
+  canvas.addEventListener('mousemove', ({ clientX, clientY }) => {
+    mouseVec.set(clientX, clientY);
+    if (isMouseDown) {
+      if (mouseHeldTrack) {
+        mouseHeldTrack.position.copy(mouseVec);
+      } else if (mouseHeldMix) {
+        mouseHeldMix.position.copy(mouseVec);
+      }
+    } 
+  });
+  canvas.addEventListener('mousedown', () => {
+    isMouseDown = true;
+
+    const clickedTrack = tracks.find(t => t.pointInRange(mouseVec));
+    if (clickedTrack) {
+      mouseHeldTrack = clickedTrack;
+      mouseHeldTrack.isHeld = true;
+      mouseHeldTrack.play();
+    } else {
+      const clickedMix = mixes.find(m => m.pointInRange(mouseVec));
+      if (clickedMix) {
+        mouseHeldMix = clickedMix;
+        mouseHeldMix.isHeld = true;
+        mouseHeldMix.play();
+      }
+    }
+  });
+
+  const clearMouse = () => {
+    isMouseDown = false;
+    if (mouseHeldTrack) {
+      mouseHeldTrack.stop();
+
+      // Combine two tracks and remove them from array
+      const dropTrack = tracks.find(t =>
+        (!t.isHeld && t.circleInRange(mouseHeldTrack) && t.sampleSet.name !== mouseHeldTrack.sampleSet.name)
+      );
+      mouseHeldTrack.isHeld = false; // Gotta do this here or it will hit itself
+
+      // First check if it's on trash
+      if (mouseHeldTrack.circleInRange(trash)) {
+        mouseHeldTrack.isTrashed = true;
+        tracks = tracks.filter(t => !t.isTrashed);
+      } else if (dropTrack && dropTrack.isFree) {
+        const mix = new TrackMix(
+          dropTrack.position.clone(),
+          [
+            [dropTrack.sampleSet, dropTrack.currentSample],
+            [mouseHeldTrack.sampleSet, mouseHeldTrack.currentSample],
+          ]
+        );
+        
+        dropTrack.hasDropped = true;
+        mouseHeldTrack.hasDropped = true;
+
+        mixes.push(mix);
+        tracks = tracks.filter(t => !t.hasDropped);
+      } else {
+        const dropMix = mixes.find(m =>
+          (m.circleInRange(mouseHeldTrack) && !m.hasSet(mouseHeldTrack.sampleSet.name))
+        );
+        if (dropMix) {
+          dropMix.addTrack(mouseHeldTrack);
+          mouseHeldTrack.hasDropped = true;
+          tracks = tracks.filter(t => !t.hasDropped);
+        }
+      }
+
+      mouseHeldTrack = null;
+    } else if (mouseHeldMix) {
+      mouseHeldMix.stop();
+
+      if (mouseHeldMix.circleInRange(trash)) {
+        mouseHeldMix.isTrashed = true;
+        mixes = mixes.filter(m => !m.isTrashed);
+      }
+      mouseHeldMix = null;
+    }
+  };
+  canvas.addEventListener('mouseup', clearMouse);
+  canvas.addEventListener('mouseout', clearMouse);
+
+  preload();
 }

@@ -73,6 +73,13 @@ export default class Vec2 {
     return this;
   }
 
+  set(x, y) {
+    this.x = x;
+    this.y = y;
+
+    return this;
+  }
+
   sub(v) {
     this.x -= v.x;
     this.y -= v.y;
