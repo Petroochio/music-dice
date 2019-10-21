@@ -59,14 +59,6 @@ export function mapPointToCanvas(point, canvasW, canvasH) {
   };
 }
 
-export function getMarker(id) {
-  return markerData[id];
-}
-
-export function getMarkers() {
-  return markerData;
-} 
-
 export function getGroup(groupName) {
   // Throw error if group can't be found please
   return inputGroupData.find(g => g.name == groupName);
@@ -75,7 +67,7 @@ export function getGroup(groupName) {
 export function update(timenow) {
   // Update
   markerData.forEach(m => m.checkPresence(timenow));
-  // inputGroupData.forEach(i => i.update());
+  inputGroupData.forEach(i => i.update());
 }
 
 export function fetchInputConfig() {
@@ -87,7 +79,7 @@ export function init(canvas, ctx) {
 
   socket = io.connect('localhost:5000');
   socket.on('connect', () => socket.emit('get inputs config'));
-  // socket.on('send inputs config', ({ config }) => parseInputs(JSON.parse(config)));
+  socket.on('send inputs config', ({ config }) => parseInputs(JSON.parse(config)));
 
   socket.on('update markers', (data) => {
     const markers = data.markers;

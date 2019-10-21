@@ -11,7 +11,7 @@ class Track {
     this.isFree = false;
     this.hasDropped = false;
     this.isTrashed = false;
-    this.radius = 40;
+    this.radius = 60;
   }
 
   update(dt) {
@@ -34,12 +34,29 @@ class Track {
     ctx.save();
 
     ctx.strokeStyle = 'white';
+    ctx.lineWidth = 4;
+    switch (this.symbol) {
+      case 'MARIMBA':
+        ctx.strokeStyle = 'red';
+        break;
+      case 'DRUM':
+        ctx.strokeStyle = 'yellow';
+        break;
+      case 'STRING':
+        ctx.strokeStyle = 'blue';
+        break;
+      default: break;
+    }
     ctx.translate(this.position.x, this.position.y);
     ctx.beginPath();
     ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
     ctx.stroke();
 
     ctx.restore();
+  }
+
+  setSample(id) {
+    this.currentSample = id;
   }
 
   play() {

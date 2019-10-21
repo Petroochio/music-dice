@@ -44,7 +44,7 @@ class Slider {
     if (this.actor.present) {
         const rwpos = this.actor.center;
         this.temppos = vecRot(matrixTransform(parent.matrixQuad2Rect, rwpos), Math.PI);
-        this.pos = vecEMA(this.pos, this.temppos, 0.5);
+        this.pos = vecEMA(this.pos, this.temppos, 0.7);
         const as = vecRot(vecScale(xaxis, this.start.distance), this.start.angle - parent.cornerAngleInput);
         this.spos = vecEMA(this.spos, as, 1.0);
         const ae = vecRot(vecScale(xaxis, this.end.distance), this.end.angle - parent.cornerAngleInput);
@@ -53,7 +53,7 @@ class Slider {
         
         let v = lineCP(this.epos, this.pos, this.spos).t;
         v = v > 1 ? 1 : v < 0 ? 0 : v; // constraining v between 0 to 1
-        this.val = calEMA(v, this.val, 0.9);
+        this.val = calEMA(v, this.val, 0.3);
     }
   }
   

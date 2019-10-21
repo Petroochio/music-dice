@@ -13,6 +13,7 @@ const mouseVec = new Vec2(0, 0);
 let isMouseDown = false;
 let mouseHeldTrack = null;
 let mouseHeldMix = null;
+let wasGrabberDown = false;
 
 let stringSet, marimbaSet, drumSet;
 let stringTrackspawn, marimbaTrackspawn, drumTrackspawn;
@@ -34,9 +35,9 @@ function preload() {
     marimbaSet.startAllSamples();
     drumSet.startAllSamples();
 
-    stringTrackspawn = new TrackSpawn(new Vec2(100, 20), stringSet, 'STRING', addTrack);
-    marimbaTrackspawn = new TrackSpawn(new Vec2(300, 20), marimbaSet, 'MARIMBA', addTrack);
-    drumTrackspawn = new TrackSpawn(new Vec2(500, 20), drumSet, 'DRUM', addTrack);
+    stringTrackspawn = new TrackSpawn(new Vec2(window.innerWidth / 2 - 300, 70), stringSet, 'STRING', addTrack);
+    marimbaTrackspawn = new TrackSpawn(new Vec2(window.innerWidth / 2, 70), marimbaSet, 'MARIMBA', addTrack);
+    drumTrackspawn = new TrackSpawn(new Vec2(window.innerWidth / 2 + 300, 70), drumSet, 'DRUM', addTrack);
 
     window.requestAnimationFrame(update);
   }
@@ -57,6 +58,99 @@ function update() {
   mixes.forEach(m => m.update(dt));
   trash.update(dt);
 
+  // Mechamarkers stuff
+  // Switch Gate
+  const toggle = Mechamarkers.getGroup('track-toggle');
+  const grabber = Mechamarkers.getGroup('track-grabber');
+
+  // Switch logic
+  if (toggle && toggle.isPresent()) {
+    const togglePoint = Vec2.copy(Mechamarkers.mapPointToCanvas(toggle.pos, window.innerWidth, window.innerHeight));
+    const targetTrack = tracks.find(t => t.position.dist(togglePoint) < 50);
+
+    if (targetTrack) targetTrack.setSample(!(toggle.getInput('toggle').val > 0.5) ? 0 : 1);
+  }
+
+  if (grabber && grabber.isPresent()) {
+    const grabPoint = Vec2.copy(Mechamarkers.mapPointToCanvas(grabber.pos, window.innerWidth, window.innerHeight));
+
+    if (mouseHeldTrack) {
+      mouseHeldTrack.position.copy(grabPoint);
+    } else if (mouseHeldMix) {
+      mouseHeldMix.position.copy(grabPoint);
+    }
+
+    if (!wasGrabberDown) {
+      const clickedTrack = tracks.find(t => t.position.dist(grabPoint) < 70);
+      if (clickedTrack) {
+        mouseHeldTrack = clickedTrack;
+        mouseHeldTrack.isHeld = true;
+        mouseHeldTrack.play();
+      } else {
+        const clickedMix = mixes.find(m => m.position.dist(grabPoint) < 70);
+        if (clickedMix) {
+          mouseHeldMix = clickedMix;
+          mouseHeldMix.isHeld = true;
+          mouseHeldMix.play();
+        }
+      }
+    }
+
+    wasGrabberDown = true;
+  } else {
+    if (wasGrabberDown) {
+      if (mouseHeldTrack) {
+        mouseHeldTrack.stop();
+  
+        // Combine two tracks and remove them from array
+        const dropTrack = tracks.find(t =>
+          (!t.isHeld && t.circleInRange(mouseHeldTrack) && t.sampleSet.name !== mouseHeldTrack.sampleSet.name)
+        );
+        mouseHeldTrack.isHeld = false; // Gotta do this here or it will hit itself
+  
+        // First check if it's on trash
+        if (mouseHeldTrack.circleInRange(trash)) {
+          mouseHeldTrack.isTrashed = true;
+          tracks = tracks.filter(t => !t.isTrashed);
+        } else if (dropTrack && dropTrack.isFree) {
+          const mix = new TrackMix(
+            dropTrack.position.clone(),
+            [
+              [dropTrack.sampleSet, dropTrack.currentSample],
+              [mouseHeldTrack.sampleSet, mouseHeldTrack.currentSample],
+            ]
+          );
+          
+          dropTrack.hasDropped = true;
+          mouseHeldTrack.hasDropped = true;
+  
+          mixes.push(mix);
+          tracks = tracks.filter(t => !t.hasDropped);
+        } else {
+          const dropMix = mixes.find(m =>
+            (m.circleInRange(mouseHeldTrack) && !m.hasSet(mouseHeldTrack.sampleSet.name))
+          );
+          if (dropMix) {
+            dropMix.addTrack(mouseHeldTrack);
+            mouseHeldTrack.hasDropped = true;
+            tracks = tracks.filter(t => !t.hasDropped);
+          }
+        }
+  
+        mouseHeldTrack = null;
+      } else if (mouseHeldMix) {
+        mouseHeldMix.stop();
+  
+        if (mouseHeldMix.circleInRange(trash)) {
+          mouseHeldMix.isTrashed = true;
+          mixes = mixes.filter(m => !m.isTrashed);
+        }
+        mouseHeldMix = null;
+      }
+    }
+    wasGrabberDown = false;
+  }
+
   draw();
   window.requestAnimationFrame(update);
 }
@@ -71,6 +165,22 @@ function draw() {
   drumTrackspawn.draw(ctx);
   tracks.forEach(t => t.draw(ctx));
   mixes.forEach(m => m.draw(ctx));
+
+  // Mechamarkers draw
+  const toggle = Mechamarkers.getGroup('track-toggle');
+  const grabber = Mechamarkers.getGroup('track-grabber');
+  if (toggle && toggle.isPresent()) {
+    const togglePoint = Vec2.copy(Mechamarkers.mapPointToCanvas(toggle.pos, window.innerWidth, window.innerHeight));
+    ctx.save();
+    ctx.translate(togglePoint.x, togglePoint.y);
+
+    ctx.fillStyle = 'white';
+    ctx.beginPath();
+    ctx.arc(0, 0, 50, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  }
 }
 
 window.onload = () => {
@@ -82,25 +192,17 @@ window.onload = () => {
   // Init and push all sounds to sound array
   drumSet = new SampleSet(
     [
-      './audio/Electronic_Beat_1.wav',
-      './audio/Electronic_Beat_2.wav',
-      './audio/Electronic_Beat_3.wav',
-      './audio/Conga_Beat_1.wav',
-      './audio/Conga_Beat_2.wav',
-      './audio/Kit_Beat_1.wav',
+      './audio/Acid House/AH-Drums-1.wav',
+      './audio/Acid House/AH-Drums-2.wav',
     ],
-    'DRUMS'
+    'DRUM'
   );
 
   // Marimba
   marimbaSet = new SampleSet(
     [
-      './audio/Marimba_Tune_1.wav',
-      './audio/Marimba_Tune_2.wav',
-      './audio/Marimba_Tune_3.wav',
-      './audio/Marimba_Tune_4.wav',
-      './audio/Marimba_Tune_5.wav',
-      './audio/Marimba_Tune_6.wav',
+      './audio/Acid House/AH-Bass-1.wav',
+      './audio/Acid House/AH-Bass-2.wav',
     ],
     'MARIMBA'
   );
@@ -108,14 +210,10 @@ window.onload = () => {
   // Strings
   stringSet = new SampleSet(
     [
-      './audio/Strings_Tune_1.wav',
-      './audio/Strings_Tune_2.wav',
-      './audio/Strings_Tune_3.wav',
-      './audio/Strings_Tune_4.wav',
-      './audio/Strings_Tune_5.wav',
-      './audio/Strings_Tune_6.wav',
+      './audio/Acid House/AH-Vocals-1.wav',
+      './audio/Acid House/AH-Vocals-2.wav',
     ],
-    'STRINGS'
+    'STRING'
   );
 
   canvas.width = window.innerWidth;

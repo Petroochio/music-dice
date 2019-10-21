@@ -7,7 +7,6 @@
       * {
         margin: 0;
         padding: 0;
-        background: black;
       }
 
       body {
@@ -15,12 +14,50 @@
         font-size: 12px;
         line-height: 1.5;
         overflow: hidden;
+        background: black;
+      }
+
+      .ui {
+        z-index: 3;
+      }
+
+      .environment {
+        z-index: 1;
+      }
+
+      #dj-board-1 {
+        position: absolute;
+        display: block;
+        width: 70vh;
+        transform: rotate(90deg);
+        top: 23vh;
+        left: -27vh;
+      }
+
+      #dj-board-2 {
+        position: absolute;
+        display: block;
+        transform: rotate(-90deg);
+        width: 70vh;
+        top: 23vh;
+        right: -27vh;
+      }
+
+      .canvas {
+        z-index: 2;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
       }
     </style>
     <script src="./build/app.js"></script>
   </head>
 
   <body>
-    <canvas width="600" height="400"></canvas>
+    <canvas class="canvas"></canvas>
+    <img class="environment" id="dj-board-1" src="./assets/Music_Game_Proto_Turntable.png" />
+    <img class="environment" id="dj-board-2" src="./assets/Music_Game_Proto_Turntable_Gray.png" />
   </body>
 </html>
