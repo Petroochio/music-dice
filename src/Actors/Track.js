@@ -11,7 +11,7 @@ class Track {
     this.isFree = false;
     this.hasDropped = false;
     this.isTrashed = false;
-    this.radius = 60;
+    this.radius = 30;
   }
 
   update(dt) {

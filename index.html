@@ -14,7 +14,7 @@
         font-size: 12px;
         line-height: 1.5;
         overflow: hidden;
-        background: black;
+        background: rgb(66, 66, 66);
       }
 
       .ui {
@@ -51,13 +51,29 @@
         width: 100vw;
         height: 100vh;
       }
+
+      .mix-button {
+        position: absolute;
+      }
+
+      #p1-mix {
+        top: 50vh;
+        left: 15vw;
+      }
+
+      #p2-mix {
+        top: 50vh;
+        right: 15vw;
+      }
     </style>
     <script src="./build/app.js"></script>
   </head>
 
   <body>
     <canvas class="canvas"></canvas>
-    <img class="environment" id="dj-board-1" src="./assets/Music_Game_Proto_Turntable.png" />
-    <img class="environment" id="dj-board-2" src="./assets/Music_Game_Proto_Turntable_Gray.png" />
+    <!-- <img class="environment" id="dj-board-1" src="./assets/Music_Game_Proto_Turntable.png" />
+    <img class="environment" id="dj-board-2" src="./assets/Music_Game_Proto_Turntable_Gray.png" /> -->
+    <!-- <button class="ui mix-button" id="p1-mix">mix</button>
+    <button class="ui mix-button" id="p2-mix">mix</button> -->
   </body>
 </html>

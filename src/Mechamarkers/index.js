@@ -64,6 +64,10 @@ export function getGroup(groupName) {
   return inputGroupData.find(g => g.name == groupName);
 }
 
+export function getMarker(markerID) {
+  return markerData[markerID];
+}
+
 export function update(timenow) {
   // Update
   markerData.forEach(m => m.checkPresence(timenow));
