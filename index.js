@@ -6,6 +6,7 @@ import * as ImgManager from './src/ImgManager';
 import DJBoard from './src/Actors/DJBoard';
 import Disc from './src/Actors/Disc';
 import Dancer from './src/Actors/Dancer';
+import Light from './src/Actors/Light';
 
 let canvas, ctx, prevTime;
 
@@ -14,7 +15,8 @@ const VH = window.innerHeight;
 
 let DJ1Board, DJ2Board;
 const discs = [];
-const dancers = [new Dancer(new Vec2(200, 200), 0)];
+const dancers = [];
+const lights = [];
 
 let quarterBeatCount = 0;
 let halfBeatCount = 0;
@@ -32,14 +34,19 @@ function preload() {
     const spawnDancer = (x, y) => {
       const assetID = Math.round(Math.random() * 3);
       dancers.push(new Dancer(new Vec2(x, y), assetID));
+      dancers.sort((d1, d2) => d1.position.y-d2.position.y);
     };
     // init dj boards
     DJ1Board = new DJBoard(new Vec2(0, 0), 'LEFT', spawnDancer);
-    DJ1Board.addScore(50);
-    DJ2Board = new DJBoard(new Vec2(window.innerWidth * 4 / 5, 0), 'RIGHT', spawnDancer);
-    DJ2Board.addScore(70);
+    for (let i = 0; i < 50; i++) {
+      const x = Math.random() * (VW - VW / 4) + VW / 8;
+      const y = Math.random() * (VH - 300);
+      spawnDancer(x, y);
+    }
+    lights.push(new Light(new Vec2(VW /2, VH *0.8), 3.14));
+
     // Init and push all sounds to sound array
-    discs.push(new Disc(66, 'acid-house', 2));
+    discs.push(new Disc(0, 'acid-house', 0), new Disc(1, 'acid-house', 1), new Disc(2, 'acid-house', 2));
 
     window.requestAnimationFrame(update);
   }
@@ -51,11 +58,11 @@ function update() {
   prevTime = currTime;
 
   discs.forEach(d => {
-    d.inUse = (DJ1Board.checkDiscSlotted(d) || DJ2Board.checkDiscSlotted(d));
+    d.inUse = (DJ1Board.checkDiscSlotted(d));// || DJ2Board.checkDiscSlotted(d));
     d.update(dt);
   });
   DJ1Board.update(dt);
-  DJ2Board.update(dt);
+  // DJ2Board.update(dt);
 
   // Beat timers
   quarterBeatCount += dt;
@@ -63,11 +70,11 @@ function update() {
     quarterBeatCount = quarterBeatCount % QUARTER_MEASURE;
     discs.forEach(d => d.pulse());
     dancers.forEach(d => d.flip());
+    discs.forEach(d => d.rotate());
   }
 
   halfBeatCount += dt;
   if (halfBeatCount >= HALF_MEASURE) {
-    discs.forEach(d => d.rotate());
     halfBeatCount = halfBeatCount % HALF_MEASURE;
   }
 
@@ -99,10 +106,10 @@ function update() {
 function draw() {
   ctx.clearRect(-1, -1, canvas.width + 1, canvas.height + 1);
 
-  DJ1Board.draw(ctx);
-  DJ2Board.draw(ctx);
-  discs.forEach(d => d.draw(ctx));
   dancers.forEach(d => d.draw(ctx));
+  lights.forEach(d => d.draw(ctx));
+  DJ1Board.draw(ctx);
+  discs.forEach(d => d.draw(ctx));
 
   // Mechamarkers draw
   const toggle = Mechamarkers.getGroup('track-toggle');

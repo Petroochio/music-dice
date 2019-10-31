@@ -13,7 +13,9 @@ class Disc {
     this.component = component;
     this.isPlaying = false;
     this.inUse = false;
-    this.position = new Vec2(0, 0);
+    this.position = new Vec2(window.innerWidth / 2, window.innerHeight / 2);
+    this.rotation = 0;
+    this.radiusMod = 1;
   }
 
   play() {
@@ -29,11 +31,13 @@ class Disc {
   }
 
   pulse() {
-
+    this.radiusMod = 3;
   }
 
   rotate() {
-
+    if (this.inUse) {
+      this.rotation += Math.PI / 10;
+    }
   }
 
   update(dt) {
@@ -47,10 +51,17 @@ class Disc {
       this.stop();
     }
 
+    if (this.isPlaying) {
+      if (this.radiusMod > 1) {
+        this.radiusMod -= 1.5 * dt;
+      } else {
+        this.radiusMod = 1;
+      }
+    }
+
     // set position from marker
-    // console.log(this.marker);
     if (this.marker.present) {
-      this.position.copy(this.marker.center);
+      this.position.copy(Mechamarkers.mapPointToCanvas(this.marker.center, window.innerWidth, window.innerHeight));
     } else {
       this.position.set(-1000, -1000);
     }
@@ -59,9 +70,24 @@ class Disc {
   draw(ctx) {
     ctx.save();
 
+    const shapeSize = 40;
     ctx.translate(this.position.x, this.position.y);
+    ctx.rotate(this.rotation);
     ctx.beginPath();
-    ctx.arc(0, 0, 30, 0, Math.PI);
+    ctx.arc(0, 0, 55, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(30, 0, 5, 0, Math.PI * 2);
+    ctx.fill();
+
+    const xaxis = new Vec2(15 * this.radiusMod, 0);
+
+    ctx.beginPath();
+    ctx.moveTo(xaxis.x, xaxis.y);
+    for (let i=1; i < this.component + 3; i++) {
+      xaxis.rotate(Math.PI * 2 / (this.component + 2));
+      ctx.lineTo(xaxis.x, xaxis.y);
+    }
     ctx.stroke();
 
     ctx.restore();
