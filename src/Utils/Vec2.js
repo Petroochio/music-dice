@@ -66,6 +66,10 @@ export default class Vec2 {
     return this;
   }
 
+  angle() {
+    return Math.atan2(this.y, this.x);
+  }
+
   addScalar(v, s) {
     this.x += v.x * s;
     this.y += v.y * s;

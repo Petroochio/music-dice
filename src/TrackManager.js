@@ -3,36 +3,43 @@ import pz from 'pizzicato';
 let numTracks = 0;
 let loadedTracks = 0;
 const trackSource = [
-  ['acid-house', './audio/Acid House/AH-Vocals.wav', './audio/Acid House/AH-Bass.wav', './audio/Acid House/AH-Drums.wav'],
+  ['house', './audio/House-1/House-1 CLP+SNR.wav', './audio/House-1/House-1 Kick.wav', './audio/House-1/House-1 Major Strings.wav', './audio/House-1/House-1 Piano Major.wav'],
 ];
 const tracks = {};
 
 export function init() {
-  trackSource.forEach(([name, dow, beep, boom]) => {
+  trackSource.forEach(([name, s1, s2, s3, s4]) => {
     numTracks += 3;
-    tracks[name] = {};
-    tracks[name][0] = new pz.Sound(dow, () => loadedTracks += 1);
-    tracks[name][0].loop = true;
-    tracks[name][0].volume = 0;
-    tracks[name][0].attack = 0.5;
-    tracks[name][0].detatch = 2;
 
-    tracks[name][1] = new pz.Sound(beep, () => loadedTracks += 1);
-    tracks[name][1].loop = true;
-    tracks[name][1].volume = 0;
-    tracks[name][1].attack = 0.5;
-    tracks[name][1].detatch = 2;
+    let sound1 = new pz.Sound(s1, () => loadedTracks += 1);
+    sound1.loop = true;
+    sound1.volume = 0.5;
+    sound1.attack = 0.5;
+    sound1.detatch = 2;
 
-    tracks[name][2] = new pz.Sound(boom, () => loadedTracks += 1);
-    tracks[name][2].loop = true;
-    tracks[name][2].volume = 0;
-    tracks[name][2].attack = 0.5;
-    tracks[name][2].detatch = 2;
+    let sound2 = new pz.Sound(s2, () => loadedTracks += 1);
+    sound2.loop = true;
+    sound2.volume = 0.5;
+    sound2.attack = 0.5;
+    sound2.detatch = 2;
+
+    let sound3 = new pz.Sound(s3, () => loadedTracks += 1);
+    sound3.loop = true;
+    sound3.volume = 0.5;
+    sound3.attack = 0.5;
+    sound3.detatch = 2;
+
+    let sound4 = new pz.Sound(s4, () => loadedTracks += 1);
+    sound4.loop = true;
+    sound4.volume = 0.5;
+    sound4.attack = 0.5;
+    sound4.detatch = 2;
+    tracks[name] = new pz.Group([sound1, sound2, sound3, sound4]);
   });
 }
 
 export function startTracks() {
-  Object.values(tracks['acid-house']).forEach(t => t.play());
+  tracks['house'].play();
 }
 
 export function checkLoaded() {

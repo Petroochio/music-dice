@@ -33,23 +33,6 @@ class Wall {
     return Vec2.sub(Vec2.scale(normal, 2 * fwd.dot(normal)), fwd);
   }
 
-  checkCircleCollision(p, r) {
-    const rSq = r * r;
-
-    // Makes sure it's not off the end of the segment
-    if (this.start.dist2(p) < rSq + this.lengthSq && this.end.dist2(p) < rSq + this.lengthSq) {
-      // If the circle is close enough to the line to collide
-      const circleVec = Vec2.sub(this.start, p);
-      const proj = this.axis.dot(circleVec) / this.axis.mag();
-      const closestPoint = this.axis.clone().normalize().scale(proj);
-
-      if (closestPoint.dist2(circleVec) < rSq) return true;
-    }
-
-    // Otherwise no
-    return false;
-  }
-
   draw(ctx) {
     ctx.beginPath();
     ctx.strokeStyle = 'white';
