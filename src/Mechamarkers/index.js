@@ -75,41 +75,50 @@ export function update(timenow) {
 }
 
 export function fetchInputConfig() {
-  socket.emit('get inputs config')
+  socket.send(JSON.stringify({ type: 'get input config' }));
+}
+
+function updateMarkers(markers) {
+  if (markers.length > 0) {
+    const mappedMarkers = markers.map(m => {
+      // include naive conversion here in library
+      const mappedCorners = m.corners.map(c => ({ x: c[0], y: c[1] }));
+
+      return {
+        id: m.id,
+        corner: mappedCorners[0],
+        center: avgCorners(mappedCorners),
+        allCorners: mappedCorners,
+      };
+    });
+
+    // HERE IS WHERE THE ARRAY OF MARKERS IS CLEMENT
+    // MappedMarkers
+    const timenow = Date.now();
+
+    mappedMarkers.forEach(m => {
+      if (m !== undefined) {
+        markerData[m.id].update(m, timenow);
+      }
+    });
+  }
 }
 
 export function init(canvas, ctx) {
   markerData = initMarkers(ctx);
 
-  socket = io.connect('localhost:5000');
-  socket.on('connect', () => socket.emit('get inputs config'));
-  socket.on('send inputs config', ({ config }) => parseInputs(JSON.parse(config)));
-
-  socket.on('update markers', (data) => {
-    const markers = data.markers;
-
-    if (markers.length > 0) {
-      const mappedMarkers = markers.map(m => {
-        // include naive conversion here in library
-        const mappedCorners = m.corners.map(c => ({ x: c[0], y: c[1] }));
-
-        return {
-          id: m.id,
-          corner: mappedCorners[0],
-          center: avgCorners(mappedCorners),
-          allCorners: mappedCorners,
-        };
-      });
-
-      // HERE IS WHERE THE ARRAY OF MARKERS IS CLEMENT
-      // MappedMarkers
-      const timenow = Date.now();
-
-      mappedMarkers.forEach(m => {
-        if (m !== undefined) {
-          markerData[m.id].update(m, timenow);
-        }
-      });
+  socket = new WebSocket('ws://localhost:5000');
+  socket.addEventListener('message', (event) => {
+    const data = JSON.parse(event.data);
+    switch (data.type) {
+      case 'markers':
+        updateMarkers(data.markers.markers);
+        break;
+      // This is sent once when connection is formed
+      case 'connected':
+        break;
+      default:
+        break;
     }
   });
 }

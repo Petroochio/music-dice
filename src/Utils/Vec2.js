@@ -8,6 +8,10 @@ export default class Vec2 {
     return new Vec2(v2.x + v1.x, v2.y + v1.y);
   }
 
+  static perp(v) {
+    return new Vec2(v.y, v.x);
+  }
+
   static addScalar(v1, v2, s) {
     const x = v1.x + (v2.x * s);
     const y = v1.y + (v2.y * s);
@@ -114,10 +118,14 @@ export default class Vec2 {
     return Vec2.sub(this, v).mag2();
   }
 
+  perp() {
+    return new Vec2(-this.y, this.x);
+  }
+
   normalize() {
     const m = this.mag();
-    this.x /= m;
-    this.y /= m;
+    this.x = this.x / m;
+    this.y = this.y / m;
 
     return this;
   }

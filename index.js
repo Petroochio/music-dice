@@ -5,9 +5,10 @@ import * as TrackManager from './src/TrackManager';
 import * as ImgManager from './src/ImgManager';
 import DiceWall from './src/Actors/DiceWall';
 import BugHead from './src/Actors/BugHead';
+import BeatButton from './src/Actors/BeatButton';
 
 let canvas, ctx, prevTime, diceWall;
-let centipede = new BugHead(new Vec2(100, 300));
+const bugs = [new BugHead(new Vec2(100, 300)), new BugHead(new Vec2(900, 300))];
 
 const VW = window.innerWidth;
 const VH = window.innerHeight;
@@ -17,25 +18,27 @@ let eighthBeatCount = 0;
 let quarterBeatCount = 0;
 let halfBeatCount = 0;
 let fullBeatCount = 0;
-let SIXTEENTH_MEASURE = 60 / 480;
-let EIGHTH_MEASURE = 60 / 240;
-let QUARTER_MEASURE = 60 / 120
-let HALF_MEASURE = 60 / 60;
-let FULL_MEASURE = 60 / 30;
-let loopTime = 0;
-let LOOP_MAX = 8;
+const bpm = 90;
+let SIXTEENTH_MEASURE = 60 / (bpm * 4);
+let EIGHTH_MEASURE = 60 / (bpm * 2);
+let QUARTER_MEASURE = 60 / bpm
+let HALF_MEASURE = 60 / (bpm / 2);
+let FULL_MEASURE = 60 / (bpm / 4);
+let loopCount = 0;
+let LOOP_MAX = 16;
 
 // beat click logic
 let wasBeatButtonDown = false;
 let isBeatButtonDown = false;
 let beatButtonPos = new Vec2(-10, -10);
+const beatButtons = [];
 
 function preload() {
   if (!TrackManager.checkLoaded()) {
     window.requestAnimationFrame(preload);
   } else {
     TrackManager.startTracks();
-    loopTime = 0;
+    loopCount = 0;
     diceWall = new DiceWall();
 
     window.requestAnimationFrame(update);
@@ -47,6 +50,11 @@ function update() {
   const dt = (currTime - prevTime) / 1000;
   prevTime = currTime;
 
+  if (loopCount >= LOOP_MAX) {
+    loopCount = 0;
+    // loop reset stuff
+  }
+
   // Beat timers
   sixTeenthCount += dt;
   if (sixTeenthCount >= SIXTEENTH_MEASURE) {
@@ -57,13 +65,16 @@ function update() {
   eighthBeatCount += dt;
   if (eighthBeatCount >= EIGHTH_MEASURE) {
     eighthBeatCount = eighthBeatCount % EIGHTH_MEASURE;
-    centipede.frameUpdate();
+    bugs.forEach(b => b.frameUpdate());
+    bugs.forEach(b => b.beatUpdate());
   }
 
   quarterBeatCount += dt;
   if (quarterBeatCount >= QUARTER_MEASURE) {
     quarterBeatCount = quarterBeatCount % QUARTER_MEASURE;
-    centipede.beatUpdate();
+    // centipede.beatUpdate();
+    diceWall.beatUpdate();
+    loopCount += 1;
   }
 
   halfBeatCount += dt;
@@ -81,51 +92,31 @@ function update() {
 
   // Game logic
   diceWall.update(dt);
-  centipede.update(dt);
-
-  if (!centipede.isCaught && diceWall.canCapture && diceWall.checkCircleCollision(centipede.position, centipede.radius)) {
-    centipede.getCaught(); // pass dice combo here
-    if (!centipede.isCaught) diceWall.break();
-  }
-
-  // Beat Button Logic
-  // const beatButton = Mechamarkers.getGroup('beat_button');
-  // if (beatButton && beatButton.isPresent()) {
-  //   isBeatButtonDown = beatButton.getInput('button').val > 0.5;
-  //   const buttonPoint = Vec2.copy(Mechamarkers.mapPointToCanvas(beatButton.pos, window.innerWidth, window.innerHeight));
-  //   const center = new Vec2(-43, -10);
-  //   center.rotate(-beatButton.angle);
-  //   center.add(buttonPoint);
-  //   beatButtonPos.copy(center);
-  // }
-
-  if (!wasBeatButtonDown && isBeatButtonDown) {
-    // do the check
-    if (beatButtonPos.dist(centipede.position) < 40) {
-      centipede.clickBeat();
+  bugs.forEach(b => {
+    if (!b.isCaught && diceWall.checkCircleCollision(b.position, b.radius)) {
+      b.getCaught();
+      if (!b.isCaught) diceWall.breakWall(b.position, b.radius);
     }
-  }
+    b.update(dt);
+  });
+  beatButtons.forEach(b => b.update(dt));
 
-  wasBeatButtonDown = isBeatButtonDown;
+  
   draw();
   window.requestAnimationFrame(update);
 }
 
 function draw() {
   ctx.clearRect(-1, -1, canvas.width + 1, canvas.height + 1);
-  centipede.draw(ctx);
+  bugs.forEach(b => b.draw(ctx));
   diceWall.draw(ctx);
+  beatButtons.forEach(b => b.draw(ctx));
+}
 
-  // draw mouse
-  ctx.save();
-  ctx.strokeStyle = 'black';
-  ctx.fillStyle = 'white';
-  ctx.translate(beatButtonPos.x, beatButtonPos.y);
-  ctx.beginPath();
-  ctx.arc(0, 0, 10, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.stroke();
-  ctx.restore();
+function clickBeat(p) {
+  if (p.dist(centipede.position) < 40) {
+    centipede.clickBeat();
+  }
 }
 
 window.onload = () => {
@@ -136,13 +127,15 @@ window.onload = () => {
   TrackManager.init();
   ImgManager.init();
 
+  beatButtons.push(new BeatButton('beat_button_1', clickBeat, new Vec2(0, 0)));
+
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
 
   // Mouse debug stuff
-  canvas.addEventListener('mousedown', () => isBeatButtonDown = true);
-  canvas.addEventListener('mouseup', () => isBeatButtonDown = false);
-  canvas.addEventListener('mousemove', (e) => beatButtonPos.set(e.clientX, e.clientY));
+  // canvas.addEventListener('mousedown', () => isBeatButtonDown = true);
+  // canvas.addEventListener('mouseup', () => isBeatButtonDown = false);
+  // canvas.addEventListener('mousemove', (e) => beatButtonPos.set(e.clientX, e.clientY));
 
   preload();
 }
