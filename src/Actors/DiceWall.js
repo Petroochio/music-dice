@@ -46,7 +46,7 @@ class DiceWall {
     ctx.save();
 
     ctx.translate(p1.x, p1.y);
-    ctx.strokeStyle = 'white';
+    ctx.strokeStyle = 'rgb(130, 220, 255)';
     ctx.lineWidth = 3;
 
     ctx.beginPath();

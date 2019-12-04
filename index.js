@@ -1,14 +1,19 @@
+import * as R from 'ramda';
 import Vec2 from './src/Utils/Vec2';
 
 import * as Mechamarkers from './src/Mechamarkers';
 import * as TrackManager from './src/TrackManager';
 import * as ImgManager from './src/ImgManager';
+import { getRandomTracks } from './src/Utils/BeatMarkups';
 import DiceWall from './src/Actors/DiceWall';
 import BugHead from './src/Actors/BugHead';
 import BeatButton from './src/Actors/BeatButton';
 
 let canvas, ctx, prevTime, diceWall;
-const bugs = [new BugHead(new Vec2(100, 300)), new BugHead(new Vec2(900, 300))];
+const bugs = [
+  new BugHead(new Vec2(window.innerWidth * 0.1, 300), 10, 0),
+  new BugHead(new Vec2(window.innerWidth * 0.9, 300), 7, 1)
+];
 
 const VW = window.innerWidth;
 const VH = window.innerHeight;
@@ -18,7 +23,7 @@ let eighthBeatCount = 0;
 let quarterBeatCount = 0;
 let halfBeatCount = 0;
 let fullBeatCount = 0;
-const bpm = 90;
+const bpm = 159;
 let SIXTEENTH_MEASURE = 60 / (bpm * 4);
 let EIGHTH_MEASURE = 60 / (bpm * 2);
 let QUARTER_MEASURE = 60 / bpm
@@ -38,6 +43,7 @@ function preload() {
     window.requestAnimationFrame(preload);
   } else {
     TrackManager.startTracks();
+    TrackManager.justDrums();
     loopCount = 0;
     diceWall = new DiceWall();
 
@@ -45,6 +51,8 @@ function preload() {
   }
 }
 
+let combo1, combo2;
+let bugsTrappedLoop = 0;
 function update() {
   const currTime = Date.now();
   const dt = (currTime - prevTime) / 1000;
@@ -52,7 +60,36 @@ function update() {
 
   if (loopCount >= LOOP_MAX) {
     loopCount = 0;
+
+    if (bugsTrappedLoop > 0) {
+      bugsTrappedLoop -= 1;
+      if (bugsTrappedLoop === 1) {
+        TrackManager.playSet(bugs.map(b => combo2[b.bugID]));
+        TrackManager.justDrums();
+        // play combo 2
+        bugs.forEach(b => {
+          if (b.isPlaying) {
+            TrackManager.maxTrack(b.bugID);
+          }
+        })
+      }
+
+      if (bugsTrappedLoop === 0) TrackManager.justDrums();
+    }
+
     // loop reset stuff
+    if (R.all(b => (b.isCaught && b.isPlaying && !b.beatTriggered), bugs)) {
+      bugsTrappedLoop = 3;
+      
+      const maxSegments = bugs.reduce((max, b) => R.max(b.getNumSegments(), max), 0);
+
+      combo1 = getRandomTracks();
+      combo2 = getRandomTracks();
+
+      // play combo 1
+      bugs.forEach(b => b.trackLooped(maxSegments, combo1, combo2));
+      TrackManager.playSet(bugs.map(b => combo1[b.bugID]));
+    }
   }
 
   // Beat timers
@@ -99,6 +136,8 @@ function update() {
     }
     b.update(dt);
   });
+  // Play all
+  if (R.all(b => (b.isCaught && !b.isPlaying), bugs)) bugs.forEach(b => b.triggerPlay());
   beatButtons.forEach(b => b.update(dt));
 
   

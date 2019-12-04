@@ -1,37 +1,21 @@
 import Vec2 from '../Utils/Vec2';
 import Bugsegment from './BugSegment';
-import { highlightTrack, balanceTrack } from '../TrackManager';
+import { dullTrack, maxTrack, stopComboTrack } from '../TrackManager';
 // on pass beat check if beat was clicked and reset it
 import Explosion from './Explosion';
 
-const headImg = {
-  green: [new Image(), new Image(), new Image()],
-  yellow: [new Image(), new Image(), new Image()],
-  red: [new Image(), new Image(), new Image()],
-  blue: [new Image(), new Image(), new Image()],
-};
-headImg.green[0].src = './assets/centipede/blue/tri/Head_1.png';
-headImg.green[1].src = './assets/centipede/blue/tri/Head_2.png';
-headImg.green[2].src = './assets/centipede/blue/tri/Head_3.png';
-headImg.yellow[0].src = './assets/centipede/yellow/Bug_Head_1F.png';
-headImg.yellow[1].src = './assets/centipede/yellow/Bug_Head_2F.png';
-headImg.yellow[2].src = './assets/centipede/yellow/Bug_Head_3F.png';
-headImg.red[0].src = './assets/centipede/red/Bug_Head_1E.png';
-headImg.red[1].src = './assets/centipede/red/Bug_Head_2E.png';
-headImg.red[2].src = './assets/centipede/red/Bug_Head_3E.png';
-headImg.blue[0].src = './assets/centipede/blue/Bug_Head_1G.png';
-headImg.blue[1].src = './assets/centipede/blue/Bug_Head_2G.png';
-headImg.blue[2].src = './assets/centipede/blue/Bug_Head_3G.png';
-
 class BugHead {
-  constructor(startPosition) {
+  constructor(startPosition, numSegments, bugID) {
+    this.bugID = bugID;
     this.position = startPosition;
     this.forward = Vec2.sub(this.position, new Vec2(window.innerWidth / 2, window.innerHeight / 2))
       .normalize(); // should be a unit vector
-    this.speed = 75;
+    this.speed = 100;
     this.radius = 30;
-    this.nextSegment = new Bugsegment(this, 7, this.radius + 10);
+    this.nextSegment = new Bugsegment(this, numSegments, this.radius - 15);
     this.isCaught = false;
+    this.isPlaying = false;
+    this.beatTriggered = false;
     this.beatInfo = false;
     this.wasBeatClicked = false;
     this.breakFreeCount = 0;
@@ -39,10 +23,16 @@ class BugHead {
     this.rageTime = 0;
     this.frame = 0;
     this.explosion = new Explosion();
+
+    this.pulseMod = 0.7;
+  }
+
+  getNumSegments() {
+    return this.nextSegment.getNumSegments() + 1;
   }
 
   update(dt) {
-    let moveVec
+    let moveVec;
     if (!this.isCaught) {
       // move and keep in bounds
       moveVec = this.rageTime > 0 ? this.forward.clone().scale(this.speed * dt * 2) : this.forward.clone().scale(this.speed * dt);
@@ -71,8 +61,6 @@ class BugHead {
 
     if (this.rageTime > 0) {
       this.rageTime -= dt;
-      // this.forward.x += 0.03;
-      // this.forward.normalize();
 
       if (this.rageTime <= 0) this.nextSegment.endRage();
     }
@@ -106,16 +94,24 @@ class BugHead {
     this.nextSegment.startRage();
     this.rageTime = 10 + 3 * Math.random();
     this.isCaught = false;
+    this.isPlaying = false;
+    this.beatTriggered = true;
     this.breakFreeCount = 0;
+    stopComboTrack(this.bugID);
     this.nextSegment.breakBeat();
-    balanceTrack();
+    // balanceTrack();
   }
 
   passBeat(newBeat) {
     if (this.beatInfo) {
       // drop beat, auto break free
       if (!this.wasBeatClicked) {
-        this.breakFreeCount += 1;
+        //this.breakFreeCount += 1;
+        // dull track for a few
+        //dullTrack(this.bugID);
+      } if (this.wasBeatClicked) {
+        // set volume good
+        maxTrack(this.bugID);
       }
     }
     this.beatInfo = newBeat;
@@ -132,26 +128,85 @@ class BugHead {
 
   getCaught() {
     if (!this.isCaught && this.rageTime <= 0) {
-      highlightTrack();
       this.isCaught = true;
-      this.nextSegment.triggerBeat(0);
     }
+  }
+
+  trackLooped(maxSegments, combo1, combo2) {
+    if (this.isPlaying && !this.beatTriggered) {
+      const beatOffset = this.getNumSegments() - maxSegments - 15;
+      this.beatTriggered = true;
+      this.nextSegment.triggerBeat(beatOffset, combo1[this.bugID], combo2[this.bugID]);
+    }
+  }
+
+  triggerPlay() {
+    this.rageTime = 0;
+    // highlightTrack();
+    this.beatTriggered = false;
+    this.isPlaying = true;
   }
 
   draw(ctx) {
     this.nextSegment.draw(ctx);
     ctx.save();
 
-    let img = this.beatInfo ? headImg.yellow[this.frame] : headImg.green[this.frame];
-    if (this.wasBeatClicked) img = headImg.blue[this.frame];
-    if (this.rageTime > 0) img = headImg.red[this.frame];
-    const ratio = 140 / img.width;
-    const w = img.width * ratio;
-    const h = img.height * ratio;
+    let color = this.beatInfo ? 'yellow' : 'white';
+    if (this.wasBeatClicked) color = 'blue';
+    if (this.rageTime > 0) color = 'red';
+    const squareSize = this.radius * 1.6;
+    const halfSize = squareSize / 2;
 
     ctx.translate(this.position.x, this.position.y);
     ctx.rotate(this.forward.angle() - Math.PI / 2);
-    ctx.drawImage(img, -w / 2, -h / 2 + 15, w, h);
+
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(-halfSize, halfSize);
+    ctx.lineTo(halfSize, halfSize);
+    ctx.lineTo(halfSize, -halfSize * 0.7);
+    ctx.lineTo(-halfSize, -halfSize * 0.7);
+    ctx.moveTo(-halfSize, halfSize);
+    ctx.fill();
+    // ctx.fillRect(-halfSize, -halfSize, squareSize, squareSize);
+
+    // mouth part 1
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = squareSize / 7;
+    ctx.translate(squareSize / 3, squareSize / 2.5);
+    ctx.rotate(Math.PI / 8);
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(0, squareSize / 2.2);
+    ctx.stroke();
+    ctx.restore();
+
+    // mouth part 2
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = squareSize / 7;
+    ctx.translate(-squareSize / 3, squareSize / 2.5);
+    ctx.beginPath();
+    ctx.rotate(-Math.PI / 8);
+    ctx.moveTo(0, 0);
+    ctx.lineTo(0, squareSize / 2.2);
+    ctx.stroke();
+    ctx.restore();
+
+
+    // eyes
+    let eyeSize = squareSize / 2;
+    eyeSize *= this.pulseMod;
+    const halfEye = eyeSize / 2;
+    const thirdSize = squareSize / 2;
+    ctx.fillStyle = 'black';
+    ctx.strokeStyle = 'white';
+    ctx.fillRect(-halfEye - halfSize, -halfEye + thirdSize, eyeSize, eyeSize);
+    ctx.strokeRect(-halfEye - halfSize, -halfEye + thirdSize, eyeSize, eyeSize);
+
+    ctx.fillRect(-halfEye + halfSize, -halfEye + thirdSize, eyeSize, eyeSize);
+    ctx.strokeRect(-halfEye + halfSize, -halfEye + thirdSize, eyeSize, eyeSize);
 
     ctx.restore();
 

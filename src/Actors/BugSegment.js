@@ -1,51 +1,22 @@
-import BeatMarkup from '../Utils/BeatMarkups';
+import * as R from 'ramda';
+import { getBeat } from '../Utils/BeatMarkups';
 import Vec2 from '../Utils/Vec2';
-
-const bodyImg = {
-  green: [new Image(), new Image(), new Image()],
-  yellow: [new Image(), new Image(), new Image()],
-  red: [new Image(), new Image(), new Image()],
-};
-bodyImg.green[0].src = './assets/centipede/blue/tri/Body_1.png';
-bodyImg.green[1].src = './assets/centipede/blue/tri/Body_2.png';
-bodyImg.green[2].src = './assets/centipede/blue/tri/Body_3.png';
-bodyImg.yellow[0].src = './assets/centipede/yellow/Bug_Body_1F.png';
-bodyImg.yellow[1].src = './assets/centipede/yellow/Bug_Body_2F.png';
-bodyImg.yellow[2].src = './assets/centipede/yellow/Bug_Body_3F.png';
-bodyImg.red[0].src = './assets/centipede/red/Bug_Body_1E.png';
-bodyImg.red[1].src = './assets/centipede/red/Bug_Body_2E.png';
-bodyImg.red[2].src = './assets/centipede/red/Bug_Body_3E.png';
-
-const tailImg = {
-  green: [new Image(), new Image(), new Image()],
-  yellow: [new Image(), new Image(), new Image()],
-  red: [new Image(), new Image(), new Image()],
-};
-tailImg.green[0].src = './assets/centipede/blue/tri/End_1.png';
-tailImg.green[1].src = './assets/centipede/blue/tri/End_2.png';
-tailImg.green[2].src = './assets/centipede/blue/tri/End_3.png';
-tailImg.yellow[0].src = './assets/centipede/yellow/Bug_Butt_1F.png';
-tailImg.yellow[1].src = './assets/centipede/yellow/Bug_Butt_2F.png';
-tailImg.yellow[2].src = './assets/centipede/yellow/Bug_Butt_3F.png';
-tailImg.red[0].src = './assets/centipede/red/Bug_Butt_1E.png';
-tailImg.red[1].src = './assets/centipede/red/Bug_Butt_2E.png';
-tailImg.red[2].src = './assets/centipede/red/Bug_Butt_3E.png';
 
 class BugSegment {
   constructor(prevSegment, numSegments, prevSegmentRadius) {
     this.prevSegment = prevSegment;
-    this.radius = 23;
+    this.radius = 30;
     this.moveOffset = this.radius + prevSegmentRadius;
     this.position = prevSegment.position.clone();
     // this.position.x -= this.moveOffset;
-    this.nextSegment = numSegments > 0 ? new BugSegment(this, numSegments - 1, this.radius) : null;
+    this.nextSegment = numSegments > 0 ? new BugSegment(this, numSegments - 1, this.radius * 0.5) : null;
     this.beatInfo = false;
-    this.beatToLoad = null;
     this.shouldLoadBeat = false;
     this.isPlayingBeat = false;
     this.beatNum = 0;
     this.frame = numSegments % 3;
     this.isRage = false;
+    this.currentBeat = [];
   }
 
   update(dt) {
@@ -76,7 +47,6 @@ class BugSegment {
   loadBeat() {
     if (this.shouldLoadBeat) {
       this.isPlayingBeat = true;
-
     }
   }
 
@@ -99,9 +69,9 @@ class BugSegment {
     if (this.nextSegment) this.nextSegment.beatUpdate();
     else {
       if (this.isPlayingBeat) {
-        if (this.beatNum < BeatMarkup[this.beatToLoad].length - 1) {
+        if (this.beatNum < this.currentBeat.length - 1) {
           this.beatNum += 1;
-          this.passBeat((BeatMarkup[this.beatToLoad][this.beatNum] === 1));
+          if (this.beatNum > -1) this.passBeat((this.currentBeat[this.beatNum] === 1));
         } else {
           this.passBeat(false);
 
@@ -115,6 +85,11 @@ class BugSegment {
     }
   }
 
+  getNumSegments() {
+    if (this.nextSegment) return this.nextSegment.getNumSegments() + 1;
+    else return 1;
+  }
+
   frameUpdate() {
     this.frame += 1;
     this.frame = this.frame % 3;
@@ -126,46 +101,47 @@ class BugSegment {
     this.beatInfo = newBeat;
   }
 
-  triggerBeat(id) {
-    if (this.nextSegment) this.nextSegment.triggerBeat(id);
+  triggerBeat(beatOffset, track1, track2) {
+    if (this.nextSegment) this.nextSegment.triggerBeat(beatOffset, track1, track2);
     else {
-      this.beatToLoad = id;
-      this.beatNum = 0;
+      this.beatNum = beatOffset;
       // this.shouldLoadBeat = true;
       this.isPlayingBeat = true;
-      this.beatInfo = (BeatMarkup[this.beatToLoad][this.beatNum] === 1);
+      this.currentBeat = R.concat(getBeat(track1), getBeat(track2));
+      if (this.beatNum > -1) this.beatInfo = (this.currentBeat[this.beatNum] === 1);
     }
   }
 
   draw(ctx) {
     const forward = Vec2.sub(this.position, this.prevSegment.position);
-    if (this.nextSegment) {
-      this.nextSegment.draw(ctx);
-      ctx.save();
+    const squareSize = this.beatInfo ? this.radius * 1.4 : this.radius;
+    const halfSize = squareSize / 2;
 
-      let img = this.beatInfo ? bodyImg.yellow[this.frame] : bodyImg.green[this.frame];
-      if (this.isRage) img = bodyImg.red[this.frame];
-      const ratio = 120 / img.width;
-      const w = img.width * ratio;
-      const h = img.height * ratio;
+    let color = this.beatInfo ? 'yellow' : 'white';
+    if (this.isRage) color = 'red';
 
-      ctx.translate(this.position.x, this.position.y);
-      ctx.rotate(forward.angle() - Math.PI / 2);
-      ctx.drawImage(img, -w / 2, -h / 2, w, h);
-      ctx.restore();
-    } else {
-      ctx.save();
-      let img = this.beatInfo ? tailImg.yellow[this.frame] : tailImg.green[this.frame];
-      if (this.isRage) img = tailImg.red[this.frame];
-      const ratio = 120 / img.width;
-      const w = img.width * ratio;
-      const h = img.height * ratio;
+    ctx.fillStyle = color;
 
-      ctx.translate(this.position.x, this.position.y);
-      ctx.rotate(forward.angle() - Math.PI / 2);
-      ctx.drawImage(img, -w / 2, -h / 2, w, h);
-      ctx.restore();
-    }
+    if (this.nextSegment) this.nextSegment.draw(ctx);
+    ctx.save();
+    ctx.translate(this.position.x, this.position.y);
+    ctx.rotate(forward.angle() - Math.PI / 2);
+    ctx.fillRect(-halfSize, -halfSize, squareSize, squareSize);
+    ctx.restore();
+    // if (this.nextSegment) {
+    //   this.nextSegment.draw(ctx);
+    //   ctx.save();
+    //   ctx.translate(this.position.x, this.position.y);
+    //   ctx.rotate(forward.angle() - Math.PI / 2);
+    //   ctx.fillRect(-halfSize, -halfSize, squareSize, squareSize);
+    //   ctx.restore();
+    // } else {
+    //   ctx.save();
+    //   ctx.translate(this.position.x, this.position.y);
+    //   ctx.rotate(forward.angle() - Math.PI / 2);
+    //   ctx.fillRect(-halfSize, -halfSize, squareSize, squareSize);
+    //   ctx.restore();
+    // }
   }
 }
 
