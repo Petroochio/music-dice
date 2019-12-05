@@ -8,6 +8,7 @@ import { getRandomTracks } from './src/Utils/BeatMarkups';
 import DiceWall from './src/Actors/DiceWall';
 import BugHead from './src/Actors/BugHead';
 import BeatButton from './src/Actors/BeatButton';
+import Grass from './src/Actors/Grass';
 
 let canvas, ctx, prevTime, diceWall;
 const bugs = [
@@ -37,6 +38,10 @@ let wasBeatButtonDown = false;
 let isBeatButtonDown = false;
 let beatButtonPos = new Vec2(-10, -10);
 const beatButtons = [];
+const grass = [];
+for (let i = 0; i < 12; i++) {
+  grass.push(new Grass(new Vec2(Math.random() * window.innerWidth, Math.random() * window.innerHeight)))
+}
 
 function preload() {
   if (!TrackManager.checkLoaded()) {
@@ -116,6 +121,7 @@ function update() {
 
   halfBeatCount += dt;
   if (halfBeatCount >= HALF_MEASURE) {
+    grass.forEach(g => g.beatUpdate());
     halfBeatCount = halfBeatCount % HALF_MEASURE;
   }
 
@@ -147,6 +153,7 @@ function update() {
 
 function draw() {
   ctx.clearRect(-1, -1, canvas.width + 1, canvas.height + 1);
+  grass.forEach(g => g.draw(ctx));
   bugs.forEach(b => b.draw(ctx));
   diceWall.draw(ctx);
   beatButtons.forEach(b => b.draw(ctx));

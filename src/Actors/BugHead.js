@@ -25,6 +25,7 @@ class BugHead {
     this.explosion = new Explosion();
 
     this.pulseMod = 0.7;
+    this.timeCount = 0;
   }
 
   getNumSegments() {
@@ -35,19 +36,22 @@ class BugHead {
     let moveVec;
     if (!this.isCaught) {
       // move and keep in bounds
+      this.timeCount += dt;
+      this.forward.rotate(Math.sin(Date.now() / 300) / 20);
+
       moveVec = this.rageTime > 0 ? this.forward.clone().scale(this.speed * dt * 2) : this.forward.clone().scale(this.speed * dt);
       let newPosition = Vec2.add(this.position, moveVec);
-      if (newPosition.x < 30) {
-        this.forward.x += 0.03;
+      if (newPosition.x < 30 && this.forward.x < 0.6) {
+        this.forward.x += 0.07;
         this.forward.normalize();
-      } else if (newPosition.x > window.innerWidth - 30) {
-        this.forward.x -= 0.03;
+      } else if (newPosition.x > window.innerWidth - 30 && this.forward.x > -0.6) {
+        this.forward.x -= 0.07;
         this.forward.normalize();
-      } else if (newPosition.y > window.innerHeight - 30) {
-        this.forward.y -= 0.03;
+      } else if (newPosition.y > window.innerHeight - 30 && this.forward.y > -0.6) {
+        this.forward.y -= 0.07;
         this.forward.normalize();
-      } else if (newPosition.y < 30) {
-        this.forward.y += 0.03;
+      } else if (newPosition.y < 30 && this.forward.y < 0.6) {
+        this.forward.y += 0.07;
         this.forward.normalize();
       }
       moveVec = this.rageTime > 0 ? this.forward.clone().scale(this.speed * dt * 2) : this.forward.clone().scale(this.speed * dt);
