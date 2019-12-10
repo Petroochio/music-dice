@@ -23,7 +23,7 @@ class Grass {
 
     ctx.translate(this.position.x, this.position.y);
     ctx.strokeStyle = 'white';
-    ctx.lineWidth = 1;
+    ctx.lineWidth = 2;
 
     let offset;
     this.points.forEach(p => {

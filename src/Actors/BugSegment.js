@@ -5,7 +5,7 @@ import Vec2 from '../Utils/Vec2';
 class BugSegment {
   constructor(prevSegment, numSegments, prevSegmentRadius) {
     this.prevSegment = prevSegment;
-    this.radius = 30;
+    this.radius = 25;
     this.moveOffset = this.radius + prevSegmentRadius;
     this.position = prevSegment.position.clone();
     // this.position.x -= this.moveOffset;

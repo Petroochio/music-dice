@@ -116,6 +116,10 @@ export function init(canvas, ctx) {
         break;
       // This is sent once when connection is formed
       case 'connected':
+        fetchInputConfig();
+        break;
+      case 'input config':
+        parseInputs(JSON.parse(data.config));
         break;
       default:
         break;

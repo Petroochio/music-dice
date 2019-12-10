@@ -43,7 +43,6 @@ export function justDrums() {
 }
 
 export function playSet(set) {
-  console.log(set);
   currentSet = set;
   justDrums();
   set.forEach(name => tracks[name].volume = 1);
@@ -55,10 +54,10 @@ export function checkLoaded() {
 
 let currentSet = [];
 export function dullTrack(bugID) {
-  tracks[currentSet[bugID]].volume = 0.2;
+  // tracks[currentSet[bugID]].volume = 0.2;
 }
 export function maxTrack(bugID) {
-  tracks[currentSet[bugID]].volume = 0.2;
+  tracks[currentSet[bugID]].volume = 1;
 }
 export function stopComboTrack(bugID) {
   tracks[currentSet[bugID]].volume = 0;

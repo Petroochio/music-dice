@@ -65,11 +65,45 @@
         top: 50vh;
         right: 15vw;
       }
+
+      .title {
+        z-index: 10;
+        position: absolute;
+        top: 30%;
+        text-align: center;
+        animation: top 2s ease-out;
+        width: 100%;
+      }
+
+      .title-main {
+        color: white;
+      }
+
+      .title-sub {
+        color: #aaa;
+      }
+
+      .title-hide {
+        top: -40%;
+      }
+
+      #end {
+
+      }
+
+      .end-hide {
+
+      }
     </style>
     <script src="./build/app.js"></script>
   </head>
 
   <body>
+    <div id="title" class="title">
+      <h1 class="title-main">BOOGIE BUG ROUNDUP</h1>
+      <h2 class="title-sub">place totems on the marks to begin</h2>
+    </div>
+    <div id="end"></div>
     <canvas class="canvas"></canvas>
     <!-- <img class="environment" id="dj-board-1" src="./assets/Music_Game_Proto_Turntable.png" />
     <img class="environment" id="dj-board-2" src="./assets/Music_Game_Proto_Turntable_Gray.png" /> -->

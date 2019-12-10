@@ -5,13 +5,13 @@ import { dullTrack, maxTrack, stopComboTrack } from '../TrackManager';
 import Explosion from './Explosion';
 
 class BugHead {
-  constructor(startPosition, numSegments, bugID) {
+  constructor(startPosition, numSegments, bugID, beatMiss, beatHit) {
     this.bugID = bugID;
     this.position = startPosition;
     this.forward = Vec2.sub(this.position, new Vec2(window.innerWidth / 2, window.innerHeight / 2))
       .normalize(); // should be a unit vector
-    this.speed = 100;
-    this.radius = 30;
+    this.speed = 170;
+    this.radius = 25;
     this.nextSegment = new Bugsegment(this, numSegments, this.radius - 15);
     this.isCaught = false;
     this.isPlaying = false;
@@ -23,6 +23,8 @@ class BugHead {
     this.rageTime = 0;
     this.frame = 0;
     this.explosion = new Explosion();
+    this.beatMiss = beatMiss;
+    this.beatHit = beatHit;
 
     this.pulseMod = 0.7;
     this.timeCount = 0;
@@ -41,16 +43,16 @@ class BugHead {
 
       moveVec = this.rageTime > 0 ? this.forward.clone().scale(this.speed * dt * 2) : this.forward.clone().scale(this.speed * dt);
       let newPosition = Vec2.add(this.position, moveVec);
-      if (newPosition.x < 30 && this.forward.x < 0.6) {
+      if (newPosition.x < 30 && this.forward.x < 0.4) {
         this.forward.x += 0.07;
         this.forward.normalize();
-      } else if (newPosition.x > window.innerWidth - 30 && this.forward.x > -0.6) {
+      } else if (newPosition.x > window.innerWidth - 30 && this.forward.x > -0.4) {
         this.forward.x -= 0.07;
         this.forward.normalize();
-      } else if (newPosition.y > window.innerHeight - 30 && this.forward.y > -0.6) {
+      } else if (newPosition.y > window.innerHeight - 30 && this.forward.y > -0.4) {
         this.forward.y -= 0.07;
         this.forward.normalize();
-      } else if (newPosition.y < 30 && this.forward.y < 0.6) {
+      } else if (newPosition.y < 30 && this.forward.y < 0.4) {
         this.forward.y += 0.07;
         this.forward.normalize();
       }
@@ -96,23 +98,23 @@ class BugHead {
 
   startRage() {
     this.nextSegment.startRage();
-    this.rageTime = 10 + 3 * Math.random();
+    this.rageTime = 5 + 3 * Math.random();
     this.isCaught = false;
     this.isPlaying = false;
     this.beatTriggered = true;
     this.breakFreeCount = 0;
     stopComboTrack(this.bugID);
     this.nextSegment.breakBeat();
-    // balanceTrack();
   }
 
   passBeat(newBeat) {
     if (this.beatInfo) {
       // drop beat, auto break free
       if (!this.wasBeatClicked) {
-        //this.breakFreeCount += 1;
+        this.breakFreeCount += 1;
         // dull track for a few
-        //dullTrack(this.bugID);
+        dullTrack(this.bugID);
+        this.beatMiss();
       } if (this.wasBeatClicked) {
         // set volume good
         maxTrack(this.bugID);
@@ -127,6 +129,7 @@ class BugHead {
       // this.breakFreeCount += 1;
     } else {
       this.wasBeatClicked = true;
+      this.beatHit();
     }
   }
 
@@ -138,7 +141,7 @@ class BugHead {
 
   trackLooped(maxSegments, combo1, combo2) {
     if (this.isPlaying && !this.beatTriggered) {
-      const beatOffset = this.getNumSegments() - maxSegments - 15;
+      const beatOffset = this.getNumSegments() - maxSegments + 16;
       this.beatTriggered = true;
       this.nextSegment.triggerBeat(beatOffset, combo1[this.bugID], combo2[this.bugID]);
     }

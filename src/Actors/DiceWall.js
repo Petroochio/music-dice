@@ -1,12 +1,19 @@
+import * as R from 'ramda';
 import Vec2 from '../Utils/Vec2';
 import * as Mechamarkers from '../Mechamarkers';
+
+class ShatterParticle {
+  constructor() {
+
+  }
+}
 
 class DiceWall {
   constructor() {
     this.posts = [
-      { marker: Mechamarkers.getMarker(51), mappedPos: new Vec2(400, 100), present: true, wasPresent: true, broken: false },
-      { marker: Mechamarkers.getMarker(52), mappedPos: new Vec2(600, 300), present: true, wasPresent: true, broken: false },
-      { marker: Mechamarkers.getMarker(53), mappedPos: new Vec2(300, 600), present: true, wasPresent: true, broken: false },
+      { marker: Mechamarkers.getMarker(15), mappedPos: new Vec2(400, 100), present: true, wasPresent: true, broken: false },
+      { marker: Mechamarkers.getMarker(21), mappedPos: new Vec2(600, 300), present: true, wasPresent: true, broken: false },
+      { marker: Mechamarkers.getMarker(22), mappedPos: new Vec2(300, 600), present: true, wasPresent: true, broken: false },
     ];
 
     this.captureLine = [];
@@ -18,6 +25,8 @@ class DiceWall {
   }
 
   update(dt) {
+    if (this.beatMod > 0.7) this.beatMod -= dt * 4;
+
     // Update posts
     this.posts.forEach((post) => {
       if (post.broken) {
@@ -25,13 +34,25 @@ class DiceWall {
       }
 
       post.wasPresent = post.present;
-      post.present = true; // post.marker.present
-      // post.mappedPos.copy(Mechamarkers.mapPointToCanvas(post.marker, window.innerWidth, window.innerHeight));
+      post.present = post.marker.present;
+      post.mappedPos.copy(Mechamarkers.mapPointToCanvas(post.marker.center, window.innerWidth, window.innerHeight));
     });
+  }
+
+  checkStartPositions(positions) {
+    return R.all(
+      (p) => {
+        return R.any(({ mappedPos }) => {
+          return (mappedPos.dist2(p) < 45)
+        }, this.posts);
+      },
+      positions
+    );
   }
 
   beatUpdate() {
     // Bump line width
+    this.beatMod = 1.7;
   }
 
   drawCaptureLine(ctx, p1, p2) {
@@ -47,7 +68,7 @@ class DiceWall {
 
     ctx.translate(p1.x, p1.y);
     ctx.strokeStyle = 'rgb(130, 220, 255)';
-    ctx.lineWidth = 3;
+    ctx.lineWidth = 3 * this.beatMod;
 
     ctx.beginPath();
     ctx.moveTo(0, 0);
@@ -66,12 +87,19 @@ class DiceWall {
   }
 
   draw(ctx) {
-    // const post0 = Mechamarkers.mapPointToCanvas(this.posts[0].marker, window.innerWidth, window.innerHeight)
-    // const post1 = Mechamarkers.mapPointToCanvas(this.posts[1].marker, window.innerWidth, window.innerHeight)
-    // const post2 = Mechamarkers.mapPointToCanvas(this.posts[2].marker, window.innerWidth, window.innerHeight)
     const post0 = this.posts[0].mappedPos;
     const post1 = this.posts[1].mappedPos;
     const post2 = this.posts[2].mappedPos;
+    this.posts.forEach(p => {
+      if (p.present) {
+        ctx.beginPath();
+        // ctx.strokeStyle = 'white';
+        ctx.fillStyle = 'rgb(130, 220, 255)';
+        // ctx.lineWidth = 3;
+        ctx.arc(p.mappedPos.x, p.mappedPos.y, 20 * this.beatMod, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    })
     
     if (this.posts[0].present && this.posts[1].present && (!this.posts[0].broken || !this.posts[1].broken)) {
       this.drawCaptureLine(ctx, post0, post1);
