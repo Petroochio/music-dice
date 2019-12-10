@@ -2,7 +2,8 @@
 <html>
   <head>
     <meta charset="UTF-8">
-    <title>Tower Man</title>
+    <title>Boogie Bug</title>
+    <link href="https://fonts.googleapis.com/css?family=VT323&display=swap" rel="stylesheet">
     <style>
       * {
         margin: 0;
@@ -10,7 +11,7 @@
       }
 
       body {
-        font-family: sans-serif;
+        font-family: 'VT323', monospace;
         font-size: 12px;
         line-height: 1.5;
         overflow: hidden;
@@ -69,30 +70,58 @@
       .title {
         z-index: 10;
         position: absolute;
-        top: 30%;
+        top: 45%;
         text-align: center;
-        animation: top 2s ease-out;
+        transition: top 0.7s ease-in;
         width: 100%;
       }
 
       .title-main {
         color: white;
+        font-size: 90px;
       }
 
       .title-sub {
         color: #aaa;
+        font-size: 30px;
       }
 
       .title-hide {
         top: -40%;
       }
 
-      #end {
-
+      .end {
+        z-index: 10;
+        position: absolute;
+        top: 35%;
+        text-align: center;
+        color: transparent;
+        transition: color 2s ease-in;
+        width: 100%;
+        display: none;
       }
 
-      .end-hide {
+      .end-main {
+        font-size: 70px;
+      }
 
+      .end-show {
+        color: red;
+        display: block;
+      }
+
+      .end-combo, .end-score {
+        color: transparent;
+        transition: color 2s ease-in;
+        font-size: 30px;
+      }
+
+      .end-show > .end-combo {
+        color: white;
+      }
+
+      .end-show > .end-score {
+        color: white;
       }
     </style>
     <script src="./build/app.js"></script>
@@ -101,9 +130,13 @@
   <body>
     <div id="title" class="title">
       <h1 class="title-main">BOOGIE BUG ROUNDUP</h1>
-      <h2 class="title-sub">place totems on the marks to begin</h2>
+      <h2 class="title-sub">place totems on the circles to begin</h2>
     </div>
-    <div id="end"></div>
+    <div id="end" class="end">
+      <h1 class="end-main">GAME OVER</h1>
+      <h2 class="end-score"></h2>
+      <h2 class="end-combo"></h2>
+    </div>
     <canvas class="canvas"></canvas>
     <!-- <img class="environment" id="dj-board-1" src="./assets/Music_Game_Proto_Turntable.png" />
     <img class="environment" id="dj-board-2" src="./assets/Music_Game_Proto_Turntable_Gray.png" /> -->

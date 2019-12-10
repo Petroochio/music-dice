@@ -42,6 +42,11 @@ export function justDrums() {
   tracks['Drums'].volume = 1;
 }
 
+export function justBass() {
+  trackSource.map(([name]) => tracks[name].volume = 0);
+  tracks['Bass-A'].volume = 1;
+}
+
 export function playSet(set) {
   currentSet = set;
   justDrums();

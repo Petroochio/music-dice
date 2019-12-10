@@ -12,7 +12,7 @@ class DiceWall {
   constructor() {
     this.posts = [
       { marker: Mechamarkers.getMarker(15), mappedPos: new Vec2(400, 100), present: true, wasPresent: true, broken: false },
-      { marker: Mechamarkers.getMarker(21), mappedPos: new Vec2(600, 300), present: true, wasPresent: true, broken: false },
+      { marker: Mechamarkers.getMarker(21), mappedPos: new Vec2(1000, 300), present: true, wasPresent: true, broken: false },
       { marker: Mechamarkers.getMarker(22), mappedPos: new Vec2(300, 600), present: true, wasPresent: true, broken: false },
     ];
 
@@ -34,6 +34,7 @@ class DiceWall {
       }
 
       post.wasPresent = post.present;
+      // post.present = true;
       post.present = post.marker.present;
       post.mappedPos.copy(Mechamarkers.mapPointToCanvas(post.marker.center, window.innerWidth, window.innerHeight));
     });
@@ -43,7 +44,7 @@ class DiceWall {
     return R.all(
       (p) => {
         return R.any(({ mappedPos }) => {
-          return (mappedPos.dist2(p) < 45)
+          return (mappedPos.dist2(p) < 160)
         }, this.posts);
       },
       positions

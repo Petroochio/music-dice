@@ -22,7 +22,7 @@ class Grass {
     ctx.save();
 
     ctx.translate(this.position.x, this.position.y);
-    ctx.strokeStyle = 'white';
+    ctx.strokeStyle =  'rgb(68, 235, 85)';
     ctx.lineWidth = 2;
 
     let offset;

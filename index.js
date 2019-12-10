@@ -9,6 +9,7 @@ import DiceWall from './src/Actors/DiceWall';
 import BugHead from './src/Actors/BugHead';
 import BeatButton from './src/Actors/BeatButton';
 import Grass from './src/Actors/Grass';
+import ComboParticles from './src/Actors/ComboParticles';
 
 let canvas, ctx, prevTime, diceWall;
 const bugs = [];
@@ -36,6 +37,9 @@ let rateIncreaseTime = 30;
 let score = 0;
 let combo = 0;
 
+let maxCombo = 0;
+let totalTime = 0;
+
 // beat click logic
 let wasBeatButtonDown = false;
 let isBeatButtonDown = false;
@@ -60,12 +64,25 @@ function preload() {
 }
 
 const startPositions = [
-  new Vec2(window.innerWidth / 5, window.innerHeight / 2),
-  new Vec2(window.innerWidth / 5 * 4, window.innerHeight / 2),
-  new Vec2(window.innerWidth / 2, window.innerHeight - (window.innerWidth / 5)),
+  new Vec2(window.innerWidth / 5 * 2, window.innerHeight / 3),
+  new Vec2(window.innerWidth / 5 * 3, window.innerHeight / 3),
+  new Vec2(window.innerWidth / 2, window.innerHeight / 5),
 ];
+let titleMain;
+let colorSwitchTime = 0;
+let debugStart = false;
 function startUpdate(dt) {
   diceWall.update(dt);
+  if (colorSwitchTime < 0) {
+    const r = Math.random() * 255;
+    const g = Math.random() * 255;
+    const b = Math.random() * 255;
+    titleMain.setAttribute('style', `text-shadow: -5px 5px rgba(${r}, ${g}, ${b}, 1)`);
+    colorSwitchTime = 0.15;
+  }
+  colorSwitchTime -= dt;
+
+  // if (debugStart) {
   if (diceWall.checkStartPositions(startPositions)) {
     gameState = 'MAIN';
     document.querySelector('#title').classList.add('title-hide');
@@ -75,21 +92,14 @@ function startUpdate(dt) {
 }
 
 function startDraw() {
-  ctx.strokeStyle = 'white';
-  ctx.beginPath();
-  ctx.arc(window.innerWidth / 5, window.innerHeight / 2, 30, 0, Math.PI * 2);
-  ctx.stroke();
+  startPositions.forEach(p => {
+    ctx.strokeStyle = 'white';
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 30, 0, Math.PI * 2);
+    ctx.stroke();
+  });
 
-  ctx.strokeStyle = 'white';
-  ctx.beginPath();
-  ctx.arc(window.innerWidth / 5 * 4, window.innerHeight / 2, 30, 0, Math.PI * 2);
-  ctx.stroke();
-
-  ctx.strokeStyle = 'white';
-  ctx.beginPath();
-  ctx.arc(window.innerWidth / 2, window.innerHeight - (window.innerWidth / 5), 30, 0, Math.PI * 2);
-  ctx.stroke();
-
+  grass.forEach(g => g.draw(ctx));
   diceWall.draw(ctx);
   beatButtons.forEach(b => b.draw(ctx));
 
@@ -98,33 +108,40 @@ function startDraw() {
 function subTime() {
   loseTimer -= loseRate;
   combo = 0;
+  loseRate += 0.7;
 }
 
-function addTime() {
+const comboParticles = [];
+function addTime(pos) {
   loseTimer += 5;
   combo += 1;
   if (loseTimer > 120) loseTimer = 120;
+  comboParticles.push(new ComboParticles(pos, combo));
+  if (combo > maxCombo) maxCombo = combo;
 }
 
-let bugSpawnTimer = 0;
+let bugSpawnTimer = 5;
 let timerSize = 3;
+let endMain;
 function mainUpdate(dt) {
-  if (rateIncreaseTime > 0) {
-    rateIncreaseTime -= dt;
-    loseRate += 0.3;
-  }
-
+  totalTime += dt;
   if (loseTimer > 0) {
     loseTimer -= dt * loseRate;
   } else {
     gameState = 'END';
-    console.log('END STATE');
+
     // Spawn a bunch of bugs here
+    document.querySelector('#end').classList.add('end-show');
+    document.querySelector('.end-score').innerHTML = `Time Survived: ${Math.floor(totalTime)} seconds`;
+    document.querySelector('.end-combo').innerHTML = `Max Combo: ${maxCombo}`;
+
+    endMain = document.querySelector('.end-main');
+    TrackManager.justBass();
   }
 
   if (timerSize > 3) timerSize -= dt * 40;
 
-  if (bugSpawnTimer <= 0) {
+  if (bugSpawnTimer <= 0 && !R.any(b => b.isCaught, bugs)) {
     if (bugIDs.length > 0) {
       bugs.push(
         new BugHead(new Vec2(window.innerWidth / 2, window.innerHeight + 50), 10, bugIDs[0], subTime, addTime)
@@ -210,6 +227,9 @@ function mainUpdate(dt) {
     }
     b.update(dt);
   });
+  comboParticles.forEach(cp => cp.update(dt));
+  let cptoRemove = comboParticles.find(cp => cp.isDone);
+  if (cptoRemove >= 0) comboParticles.splice(cptoRemove, 1);
 
   // Play all
   if (R.all(b => (b.isCaught && !b.isPlaying), bugs)) bugs.forEach(b => b.triggerPlay());
@@ -219,6 +239,7 @@ function mainUpdate(dt) {
 function mainDraw() {
   grass.forEach(g => g.draw(ctx));
   bugs.forEach(b => b.draw(ctx));
+  comboParticles.forEach(cp => cp.draw(ctx));
   diceWall.draw(ctx);
   beatButtons.forEach(b => b.draw(ctx));
 
@@ -238,8 +259,19 @@ function mainDraw() {
   ctx.restore();
 }
 
+let endresetTimer = 10;
 function endUpdate(dt) {
-  
+  if (colorSwitchTime < 0) {
+    const r = Math.random() * 255;
+    const g = Math.random() * 255;
+    const b = Math.random() * 255;
+    endMain.setAttribute('style', `text-shadow: -5px 5px rgba(${r}, ${g}, ${b}, 1)`);
+    colorSwitchTime = 0.15;
+  }
+  colorSwitchTime -= dt;
+
+  endresetTimer += dt;
+  if (endresetTimer > 30) location.reload();
 }
 
 function endDraw() {
@@ -311,9 +343,14 @@ window.onload = () => {
 
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
+  titleMain = document.querySelector('.title-main');
 
   // Mouse debug stuff
-  // canvas.addEventListener('mousedown', () => isBeatButtonDown = true);
+
+  canvas.addEventListener('mousedown', (e) => {
+    clickBeat(new Vec2(e.clientX, e.clientY));
+    debugStart = true;
+  });
   // canvas.addEventListener('mouseup', () => isBeatButtonDown = false);
   // canvas.addEventListener('mousemove', (e) => beatButtonPos.set(e.clientX, e.clientY));
 

@@ -2,14 +2,32 @@ import * as R from 'ramda';
 import { getBeat } from '../Utils/BeatMarkups';
 import Vec2 from '../Utils/Vec2';
 
+const hexPoints = [
+  new Vec2(-1, 0),
+  new Vec2(-0.5, -0.7),
+  new Vec2(0.5, -0.7),
+  new Vec2(1, 0),
+  new Vec2(0.5, 0.7),
+  new Vec2(-0.5, 0.7),
+];
+
+const triPoints = [
+  new Vec2(-0.5, 0.7),
+  new Vec2(0.5, 0.7),
+  new Vec2(0, -0.2),
+];
+
 class BugSegment {
-  constructor(prevSegment, numSegments, prevSegmentRadius) {
+  constructor(prevSegment, numSegments, prevSegmentRadius, beatColor) {
     this.prevSegment = prevSegment;
     this.radius = 25;
+    if (numSegments === 2) this.radius *= 0.8;
+    if (numSegments === 1) this.radius *= 0.6;
+    if (numSegments === 0) this.radius *= 0.4;
     this.moveOffset = this.radius + prevSegmentRadius;
     this.position = prevSegment.position.clone();
     // this.position.x -= this.moveOffset;
-    this.nextSegment = numSegments > 0 ? new BugSegment(this, numSegments - 1, this.radius * 0.5) : null;
+    this.nextSegment = numSegments > 0 ? new BugSegment(this, numSegments - 1, this.radius * 0.5, beatColor) : null;
     this.beatInfo = false;
     this.shouldLoadBeat = false;
     this.isPlayingBeat = false;
@@ -17,6 +35,7 @@ class BugSegment {
     this.frame = numSegments % 3;
     this.isRage = false;
     this.currentBeat = [];
+    this.beatColor = beatColor
   }
 
   update(dt) {
@@ -113,35 +132,36 @@ class BugSegment {
   }
 
   draw(ctx) {
-    const forward = Vec2.sub(this.position, this.prevSegment.position);
-    const squareSize = this.beatInfo ? this.radius * 1.4 : this.radius;
-    const halfSize = squareSize / 2;
-
-    let color = this.beatInfo ? 'yellow' : 'white';
-    if (this.isRage) color = 'red';
-
-    ctx.fillStyle = color;
-
     if (this.nextSegment) this.nextSegment.draw(ctx);
+    const forward = Vec2.sub(this.position, this.prevSegment.position);
+    let size = this.radius * 0.9;
+
     ctx.save();
     ctx.translate(this.position.x, this.position.y);
     ctx.rotate(forward.angle() - Math.PI / 2);
-    ctx.fillRect(-halfSize, -halfSize, squareSize, squareSize);
+
+    let color = 'white';
+    if (this.isRage) color = 'red';
+    ctx.fillStyle = color;
+
+    ctx.beginPath();
+    ctx.moveTo(hexPoints[5].x * size, hexPoints[5].y * size);
+    hexPoints.forEach(p => {
+      ctx.lineTo(p.x * size, p.y * size);
+    });
+    ctx.fill();
+
+    color = this.beatInfo ? this.beatColor : 'black';
+    if (this.isRage) color = 'red';
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(triPoints[2].x * size, triPoints[2].y * size);
+    triPoints.forEach(p => {
+      ctx.lineTo(p.x * size, p.y * size);
+    });
+    ctx.fill();
+
     ctx.restore();
-    // if (this.nextSegment) {
-    //   this.nextSegment.draw(ctx);
-    //   ctx.save();
-    //   ctx.translate(this.position.x, this.position.y);
-    //   ctx.rotate(forward.angle() - Math.PI / 2);
-    //   ctx.fillRect(-halfSize, -halfSize, squareSize, squareSize);
-    //   ctx.restore();
-    // } else {
-    //   ctx.save();
-    //   ctx.translate(this.position.x, this.position.y);
-    //   ctx.rotate(forward.angle() - Math.PI / 2);
-    //   ctx.fillRect(-halfSize, -halfSize, squareSize, squareSize);
-    //   ctx.restore();
-    // }
   }
 }
 

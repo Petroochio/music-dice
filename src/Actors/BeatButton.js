@@ -1,52 +1,6 @@
 import Vec2 from '../Utils/Vec2';
 import * as Mechamarkers from '../Mechamarkers';
 
-class ButtonAnimation {
-  constructor() {
-    this.position = new Vec2(0, 0);
-    this.animationTime = 2;
-    this.scale = 0;
-    this.lines = [];
-    for (let i = 0; i < 6; i ++) {
-      const newVec = new Vec2(1, 0);
-      newVec.rotate(Math.PI * 2 * Math.random());
-      this.lines.push(newVec);
-    }
-  }
-
-  trigger(pos) {
-    this.position.copy(pos);
-    this.animationTime = 0;
-    this.scale = 0;
-    this.lines.forEach(l => l.rotate(Math.PI * 2 * Math.random()));
-  }
-
-  update(dt) {
-    if (this.animationTime < 1.5) {
-      this.animationTime += dt;
-      this.scale += 10 * dt;
-    }
-  }
-
-  draw(ctx) {
-    if (this.animationTime < 1.5) {
-      ctx.save();
-      console.log('animate');
-      ctx.translate(this.position.x, this.position.y);
-      ctx.strokeStyle = 'white';
-      ctx.lineWidth = 1;
-      this.lines.forEach(l => {
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.lineTo(l.x * this.scale, l.y * this.scale);
-        ctx.stroke();
-      });
-
-      ctx.restore();
-    }
-  }
-}
-
 class BeatButton {
   constructor(groupID, clickBeat, centerOffset) {
     this.wasDown = false;
@@ -55,11 +9,20 @@ class BeatButton {
     this.centerOffset = centerOffset;
     this.position = new Vec2(0, 0);
     this.clickBeat = clickBeat;
-    this.animation = new ButtonAnimation();
+    this.isAnimating = false;
+    this.animationTime = 0;
   }
 
   update(dt) {
-    this.animation.update(dt);
+    if (this.isAnimating) {
+      this.animationTime += dt;
+    }
+
+    if (this.animationTime > 0.1) {
+      this.animationTime = 0;
+      this.isAnimating = false;
+    }
+
     if (!this.input) this.input = Mechamarkers.getGroup(this.groupID);
 
     if (this.input && this.input.isPresent()) {
@@ -70,7 +33,15 @@ class BeatButton {
 
       if (!this.wasDown && isDown) {
         this.clickBeat(this.position);
-        this.animation.trigger(this.position);
+        this.isAnimating = true;
+
+        this.lines = [];
+        for (let i = 0; i < 7; i++) {
+          this.lines.push({
+            fwd: (new Vec2(Math.random() - 0.5, Math.random() - 0.5)).normalize(),
+            s: Math.random() * 40 + 40 
+          });
+        }
       }
 
       this.wasDown = isDown;
@@ -80,17 +51,32 @@ class BeatButton {
   draw(ctx) {
     if (this.input && this.input.isPresent()) {
       ctx.save();
-      ctx.strokeStyle = 'black';
-      ctx.fillStyle = 'white';
+      ctx.strokeStyle = 'white';
+
       ctx.translate(this.position.x, this.position.y);
       ctx.beginPath();
       ctx.arc(0, 0, 30, 0, Math.PI * 2);
-      ctx.fill();
+
       ctx.stroke();
       ctx.restore();
     }
 
-    this.animation.draw(ctx);
+    if (this.isAnimating) {
+      ctx.save();
+      ctx.translate(this.position.x, this.position.y);
+      ctx.beginPath();
+      ctx.strokeStyle = 'white';
+      ctx.lineWidth = 0.5;
+
+      this.lines.forEach(l => {
+        ctx.moveTo(0,0);
+        const factor = this.animationTime / 0.1 * l.s;
+        ctx.lineTo(l.fwd.x * factor, l.fwd.y * factor);
+      });
+
+      ctx.stroke();
+      ctx.restore();
+    }
   }
 }
 

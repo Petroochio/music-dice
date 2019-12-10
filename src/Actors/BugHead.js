@@ -4,6 +4,28 @@ import { dullTrack, maxTrack, stopComboTrack } from '../TrackManager';
 // on pass beat check if beat was clicked and reset it
 import Explosion from './Explosion';
 
+const beatColors = [
+  'rgba(211, 25, 150, 1)',
+  'rgba(85, 227, 255, 1)',
+  'rgba(25, 222, 137, 1)',
+];
+
+const hexPoints = [
+  new Vec2(-1, 0),
+  new Vec2(-0.5, -0.7),
+  new Vec2(0.5, -0.7),
+  new Vec2(1, 0),
+  new Vec2(0.5, 0.7),
+  new Vec2(-0.5, 0.7),
+];
+
+const leftTriPoints = [new Vec2(-1.2, 0.2), new Vec2(-0.7, 0.9), new Vec2(-0.7, 1.5)];
+const rightTriPoints = [new Vec2(1.2, 0.2), new Vec2(0.7, 0.9), new Vec2(0.7, 1.5)];
+const leftEye = [new Vec2(-0.9, 0), new Vec2(-0.4, 0.6), new Vec2(-0.3, 0.3)];
+const rightEye = [new Vec2(0.9, 0), new Vec2(0.4, 0.6), new Vec2(0.3, 0.3)];
+
+const eyeCatch = [new Vec2(-0.15, -0.15), new Vec2(-0.15, 0.15), new Vec2(0.15, 0.15), new Vec2(0.15, -0.15)];
+
 class BugHead {
   constructor(startPosition, numSegments, bugID, beatMiss, beatHit) {
     this.bugID = bugID;
@@ -11,8 +33,9 @@ class BugHead {
     this.forward = Vec2.sub(this.position, new Vec2(window.innerWidth / 2, window.innerHeight / 2))
       .normalize(); // should be a unit vector
     this.speed = 170;
-    this.radius = 25;
-    this.nextSegment = new Bugsegment(this, numSegments, this.radius - 15);
+    this.radius = 37;
+    this.beatColor = beatColors[bugID];
+    this.nextSegment = new Bugsegment(this, numSegments, this.radius - 15, this.beatColor);
     this.isCaught = false;
     this.isPlaying = false;
     this.beatTriggered = false;
@@ -25,9 +48,9 @@ class BugHead {
     this.explosion = new Explosion();
     this.beatMiss = beatMiss;
     this.beatHit = beatHit;
-
     this.pulseMod = 0.7;
     this.timeCount = 0;
+    this.eyeSpin = 0;
   }
 
   getNumSegments() {
@@ -59,6 +82,8 @@ class BugHead {
       moveVec = this.rageTime > 0 ? this.forward.clone().scale(this.speed * dt * 2) : this.forward.clone().scale(this.speed * dt);
       newPosition = Vec2.add(this.position, moveVec);
       this.position.copy(newPosition);
+    } else {
+      this.eyeSpin += dt * 10;
     }
 
     if (this.breakFreeCount >= this.BREAK_MAX) {
@@ -129,7 +154,7 @@ class BugHead {
       // this.breakFreeCount += 1;
     } else {
       this.wasBeatClicked = true;
-      this.beatHit();
+      this.beatHit(this.position);
     }
   }
 
@@ -158,66 +183,84 @@ class BugHead {
     this.nextSegment.draw(ctx);
     ctx.save();
 
-    let color = this.beatInfo ? 'yellow' : 'white';
+    let color = this.beatInfo ? this.beatColor : 'white';
     if (this.wasBeatClicked) color = 'blue';
     if (this.rageTime > 0) color = 'red';
-    const squareSize = this.radius * 1.6;
-    const halfSize = squareSize / 2;
 
+    let size = this.radius * 0.9;
+    ctx.fillStyle = color;
+
+    ctx.save();
     ctx.translate(this.position.x, this.position.y);
     ctx.rotate(this.forward.angle() - Math.PI / 2);
 
-    ctx.fillStyle = color;
     ctx.beginPath();
-    ctx.moveTo(-halfSize, halfSize);
-    ctx.lineTo(halfSize, halfSize);
-    ctx.lineTo(halfSize, -halfSize * 0.7);
-    ctx.lineTo(-halfSize, -halfSize * 0.7);
-    ctx.moveTo(-halfSize, halfSize);
+    ctx.moveTo(hexPoints[5].x * size, hexPoints[5].y * size);
+    hexPoints.forEach(p => {
+      ctx.lineTo(p.x * size, p.y * size);
+    });
     ctx.fill();
-    // ctx.fillRect(-halfSize, -halfSize, squareSize, squareSize);
-
-    // mouth part 1
-    ctx.save();
-    ctx.strokeStyle = color;
-    ctx.lineWidth = squareSize / 7;
-    ctx.translate(squareSize / 3, squareSize / 2.5);
-    ctx.rotate(Math.PI / 8);
+    
     ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(0, squareSize / 2.2);
-    ctx.stroke();
+    ctx.moveTo(leftTriPoints[2].x * size, leftTriPoints[2].y * size);
+    leftTriPoints.forEach(p => {
+      ctx.lineTo(p.x * size, p.y * size);
+    });
+
+    ctx.moveTo(rightTriPoints[2].x * size, rightTriPoints[2].y * size);
+    rightTriPoints.forEach(p => {
+      ctx.lineTo(p.x * size, p.y * size);
+    });
+    ctx.fill();
+
+    if (this.isCaught) {
+      // left eye
+      ctx.save();
+
+      ctx.translate(-0.4 * size, 0.25 * size);
+      ctx.rotate(-this.eyeSpin);
+      ctx.fillStyle = 'black';
+      ctx.beginPath();
+      ctx.moveTo(eyeCatch[3].x * size, eyeCatch[3].y * size);
+      eyeCatch.forEach(p => {
+        ctx.lineTo(p.x * size, p.y * size);
+      });
+      ctx.fill();
+
+      ctx.restore();
+
+      // Right eye
+      ctx.save();
+
+      ctx.translate(0.4 * size, 0.25 * size);
+      ctx.rotate(this.eyeSpin);
+      ctx.fillStyle = 'black';
+      ctx.beginPath();
+      ctx.moveTo(eyeCatch[3].x * size, eyeCatch[3].y * size);
+      eyeCatch.forEach(p => {
+        ctx.lineTo(p.x * size, p.y * size);
+      });
+      ctx.fill();
+
+      ctx.restore();
+    } else {
+      ctx.fillStyle = 'black';
+      ctx.beginPath();
+      ctx.moveTo(leftEye[2].x * size, leftEye[2].y * size);
+      leftEye.forEach(p => {
+        ctx.lineTo(p.x * size, p.y * size);
+      });
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.moveTo(rightEye[2].x * size, rightEye[2].y * size);
+      rightEye.forEach(p => {
+        ctx.lineTo(p.x * size, p.y * size);
+      });
+      ctx.fill();
+    }
+
     ctx.restore();
-
-    // mouth part 2
-    ctx.save();
-    ctx.strokeStyle = color;
-    ctx.lineWidth = squareSize / 7;
-    ctx.translate(-squareSize / 3, squareSize / 2.5);
-    ctx.beginPath();
-    ctx.rotate(-Math.PI / 8);
-    ctx.moveTo(0, 0);
-    ctx.lineTo(0, squareSize / 2.2);
-    ctx.stroke();
-    ctx.restore();
-
-
-    // eyes
-    let eyeSize = squareSize / 2;
-    eyeSize *= this.pulseMod;
-    const halfEye = eyeSize / 2;
-    const thirdSize = squareSize / 2;
-    ctx.fillStyle = 'black';
-    ctx.strokeStyle = 'white';
-    ctx.fillRect(-halfEye - halfSize, -halfEye + thirdSize, eyeSize, eyeSize);
-    ctx.strokeRect(-halfEye - halfSize, -halfEye + thirdSize, eyeSize, eyeSize);
-
-    ctx.fillRect(-halfEye + halfSize, -halfEye + thirdSize, eyeSize, eyeSize);
-    ctx.strokeRect(-halfEye + halfSize, -halfEye + thirdSize, eyeSize, eyeSize);
-
-    ctx.restore();
-
-    this.explosion.draw(ctx);
   }
 }
 
